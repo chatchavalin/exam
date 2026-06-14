@@ -176,7 +176,7 @@
 
   const $ = (id)=>document.getElementById(id);
   const el = (sel)=>document.querySelector(sel);
-  let client=null, me=null, profile=null;
+  let client=null, me=null, profile=null, appConfig={telegram_token:""};
   const state = { subjects:[], subtopics:[], route:"dashboard" };
 
   /* ---------- supabase bootstrap ---------- */
@@ -236,9 +236,10 @@
     profile = data || { id:me.id, email:me.email, theme:"light" };
     applyTheme(profile.theme || "light");
     if(!profile.display_name || !profile.grade){ openSetup(); return; }
-    await loadBank();
+    await loadBank(); await loadConfig();
     enterApp();
   }
+  async function loadConfig(){ try{ const {data}=await client.from("app_config").select("*").eq("id",1).single(); if(data) appConfig=data; }catch(e){} }
   function applyTheme(t){ document.documentElement.setAttribute("data-theme", THEMES.includes(t)?t:"light"); }
 
   /* ---------- profile setup ---------- */
@@ -304,6 +305,9 @@
   async function viewDashboard(v){
     const qCount = await client.from("questions").select("id",{count:"exact",head:true});
     const n = qCount.count||0;
+    const {data:atts}=await client.from("attempts").select("created_at");
+    const ansCount = await client.from("answers").select("id",{count:"exact",head:true});
+    const streak=computeStreak((atts||[]).map(a=>a.created_at));
     v.innerHTML = `
       <div class="tile pcard">
         <div class="av">${profile.avatar_url?`<img class="av" src="${profile.avatar_url}">`:initials()}</div>
@@ -314,12 +318,25 @@
         <div class="stat"><div class="n">${n}</div><div class="l">Questions in bank</div></div>
         <div class="stat"><div class="n">${state.subjects.length}</div><div class="l">Subjects</div></div>
       </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="stat"><div class="n">🔥 ${streak}</div><div class="l">Day streak</div></div>
+        <div class="stat"><div class="n">${ansCount.count||0}</div><div class="l">Answered</div></div>
+      </div>
       <div class="sectiontitle">Get started</div>
       <div class="tile">
         <div style="font-weight:600;margin-bottom:4px">Build your question bank</div>
-        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Add questions, then quizzes and stats unlock as you go.</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Add questions one by one, or bulk-import a whole set. Then quizzes and stats unlock as you go.</div>
         <button class="btn primary" onclick="go('bank')">Go to bank</button>
       </div>`;
+  }
+  function computeStreak(dates){
+    const days=new Set(dates.map(d=>(d||"").slice(0,10)).filter(Boolean));
+    if(!days.size) return 0;
+    const iso=x=>x.toISOString().slice(0,10);
+    let d=new Date(); let streak=0;
+    if(!days.has(iso(d))){ d.setDate(d.getDate()-1); if(!days.has(iso(d))) return 0; }
+    while(days.has(iso(d))){ streak++; d.setDate(d.getDate()-1); }
+    return streak;
   }
 
   /* ---------- BANK ---------- */
@@ -330,7 +347,7 @@
         <select id="bk-filter"><option value="">All subjects</option>${state.subjects.map(s=>`<option value="${s.id}" ${s.id===bankFilter?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
         <button class="btn primary" style="flex:none" onclick="openQ()">+ Add</button>
       </div>
-      <div style="margin-bottom:10px"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects & topics →</button></div>
+      <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects &amp; topics →</button><button class="btn sm ghost" onclick="openImport()">Bulk import →</button></div>
       <div id="qlist"><div class="empty">Loading…</div></div>`;
     $("bk-filter").onchange = (e)=>{ bankFilter=e.target.value; loadQ(); };
     loadQ();
@@ -446,6 +463,90 @@
   function qmsg(t){ const m=el("#q-msg"); m.className="msg err"; m.textContent=t; m.classList.remove("hidden"); }
   async function delQ(id){ if(!confirm("Delete this question?")) return; await client.from("questions").delete().eq("id",id); closeModal(); loadQ(); }
 
+  /* ---------- BULK IMPORT ---------- */
+  function openImport(){
+    const subsOpt = state.subjects.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join("");
+    const sample = "[Subject] Math\n[Grade] P6\n\nQ: What is 2 + 2?\nA) 3\n*B) 4\nC) 5\nD) 6\nE: Two plus two equals four.\n\nQ: Which are even? (tick all)\n*A) 2\nB) 3\n*C) 4\nD) 5\n\n[Subject] Thai\nW: What is the capital of Thailand?\nANSWER: Bangkok";
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="sheet">
+      <button class="close" onclick="closeModal()">×</button>
+      <h3>Bulk import</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Paste many questions at once, then tap <b>Preview</b> to check and <b>Import</b>.</p>
+      <div class="field"><label>Default subject (used if text has no [Subject])</label><select id="im-sub"><option value="">— choose —</option>${subsOpt}</select></div>
+      <div class="field"><label>Questions</label><textarea id="im-text" style="min-height:190px;font-family:monospace;font-size:13px" placeholder="Paste here…"></textarea></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="im-skip" checked style="width:auto"> Skip questions already in the bank</label>
+      <details style="margin:10px 0"><summary style="font-size:13px;color:var(--accent)">Show format example</summary><pre style="white-space:pre-wrap;font-size:12px;background:var(--bg);padding:10px;border-radius:8px;margin-top:8px">${esc(sample)}</pre><div style="font-size:12px;color:var(--muted)"><b>[Subject] Name</b> / <b>[Grade] P6</b> set the current subject &amp; grade. <b>Q:</b> starts a multiple-choice question; each choice line starts with a letter and bracket like <b>A)</b>, and the correct one(s) get a <b>*</b> in front (mark several for select-all). <b>E:</b> adds an explanation. For written questions use <b>W:</b> then <b>ANSWER:</b>. Separate questions with a blank line.</div></details>
+      <div id="im-msg" class="msg hidden"></div>
+      <div id="im-preview"></div>
+      <div class="row" style="margin-top:8px"><button class="btn" onclick="previewImport()">Preview</button><button class="btn primary" id="im-go" onclick="runImport()">Import</button></div>
+    </div>`;
+    $("modal-root").appendChild(m);
+  }
+  function parseImport(text, defSubject){
+    const lines=(text||"").replace(/\r/g,"").split("\n");
+    const items=[]; let cur=null, curSub=defSubject||"", curGrade="";
+    const choiceRe=/^\s*(\*?)\s*([A-Za-zก-ฮ])[\)\.\:]\s+(.+)$/;
+    const push=()=>{ if(cur && cur.stem) items.push(cur); cur=null; };
+    for(const raw of lines){
+      const line=raw.trim(); if(!line) continue; let mm;
+      if(mm=line.match(/^\[subject\]\s*(.+)$/i)){ curSub=mm[1].trim(); continue; }
+      if(mm=line.match(/^\[grade\]\s*(.+)$/i)){ curGrade=mm[1].trim(); continue; }
+      if(mm=line.match(/^Q[:.]\s*(.+)$/i)){ push(); cur={ type:"mcq", subject:curSub, grade:curGrade, stem:mm[1].trim(), choices:[], explanation:null, answer_text:null }; continue; }
+      if(mm=line.match(/^W[:.]\s*(.+)$/i)){ push(); cur={ type:"written", subject:curSub, grade:curGrade, stem:mm[1].trim(), choices:[], explanation:null, answer_text:null }; continue; }
+      if(mm=line.match(/^(?:E|Explanation)[:.]\s*(.+)$/i)){ if(cur) cur.explanation=mm[1].trim(); continue; }
+      if(mm=line.match(/^(?:ANSWER|Ans)[:.]\s*(.+)$/i)){ if(cur){ cur.type="written"; cur.answer_text=mm[1].trim(); } continue; }
+      if(cur && cur.type==="mcq" && (mm=line.match(choiceRe))){ cur.choices.push({ correct: mm[1]==="*", content: mm[3].trim() }); continue; }
+      if(cur) cur.stem += " " + line;
+    }
+    push();
+    items.forEach(it=>{ if(it.type==="mcq"){ it.answer_mode = it.choices.filter(c=>c.correct).length>1?"multi":"single"; } else it.answer_mode="single"; });
+    return items;
+  }
+  function importIssues(items){
+    const errs=[];
+    items.forEach((it,i)=>{ const n=i+1;
+      if(!it.subject) errs.push(`#${n}: no subject (pick a default or add [Subject]).`);
+      if(it.type==="mcq"){ if(it.choices.length<2) errs.push(`#${n}: needs at least 2 choices.`); if(!it.choices.some(c=>c.correct)) errs.push(`#${n}: no correct choice marked with *.`); }
+      if(it.type==="written" && !it.answer_text) errs.push(`#${n}: written question has no ANSWER.`);
+    });
+    return errs;
+  }
+  function previewImport(){
+    const items=parseImport($("im-text").value, $("im-sub").value);
+    const msg=$("im-msg"), pv=$("im-preview"); msg.classList.remove("hidden");
+    if(!items.length){ msg.className="msg err"; msg.textContent="Nothing detected — check the format example."; pv.innerHTML=""; return; }
+    const errs=importIssues(items);
+    msg.className="msg "+(errs.length?"err":"ok");
+    msg.textContent=errs.length?`Found ${items.length} question(s); ${errs.length} need a fix:`:`Looks good — ${items.length} question(s) ready.`;
+    pv.innerHTML=(errs.length?`<div class="tile" style="font-size:12.5px">${errs.slice(0,8).map(esc).join("<br>")}</div>`:"")+
+      items.slice(0,6).map((it,i)=>`<div class="listitem"><div class="grow"><div class="t">${i+1}. ${esc(it.stem)}</div><div class="s">${esc(it.subject||"—")} · ${it.type==="written"?"Written":(it.answer_mode==="multi"?"Multi":"MCQ")}</div></div></div>`).join("")+
+      (items.length>6?`<div style="color:var(--muted);font-size:12px;padding:6px">…and ${items.length-6} more</div>`:"");
+  }
+  async function runImport(){
+    const skip=$("im-skip").checked;
+    const items=parseImport($("im-text").value, $("im-sub").value);
+    const msg=$("im-msg"); msg.classList.remove("hidden");
+    if(!items.length){ msg.className="msg err"; msg.textContent="Nothing to import."; return; }
+    if(importIssues(items).length){ msg.className="msg err"; msg.textContent="Fix the issues shown in Preview first."; previewImport(); return; }
+    $("im-go").disabled=true; msg.className="msg"; msg.textContent="Importing…";
+    let existing=new Set();
+    if(skip){ const {data}=await client.from("questions").select("stem"); (data||[]).forEach(r=>existing.add((r.stem||"").trim().toLowerCase())); }
+    const subByName={}; state.subjects.forEach(s=>subByName[s.name.toLowerCase()]=s.id);
+    let added=0, skipped=0;
+    for(const it of items){
+      if(skip && existing.has(it.stem.trim().toLowerCase())){ skipped++; continue; }
+      let sid=subByName[(it.subject||"").toLowerCase()];
+      if(!sid && it.subject){ const {data}=await client.from("subjects").insert({name:it.subject,color:"#7c4dff",default_time_per_q:60}).select("*").single(); if(data){ sid=data.id; subByName[it.subject.toLowerCase()]=sid; state.subjects.push(data); } }
+      const ins={ subject_id:sid||state.subjects[0]?.id||null, subtopic_id:null, grade:it.grade||null, type:it.type, answer_mode:it.answer_mode, passage:null, stem:it.stem, answer_text:it.answer_text||null, explanation:it.explanation||null, created_by:me.id };
+      const {data:nq,error}=await client.from("questions").insert(ins).select("id").single();
+      if(error||!nq) continue;
+      if(it.type==="mcq" && it.choices.length){ const labels=["ก","ข","ค","ง","จ","ฉ"]; await client.from("choices").insert(it.choices.map((c,idx)=>({question_id:nq.id,label:labels[idx]||String(idx+1),content:c.content,is_correct:!!c.correct,position:idx}))); }
+      existing.add(it.stem.trim().toLowerCase()); added++;
+    }
+    msg.className="msg ok"; msg.textContent=`Imported ${added} question(s)`+(skipped?`, skipped ${skipped} duplicate(s)`:"")+".";
+    $("im-go").disabled=false; loadQ();
+  }
+
   /* ---------- SUBJECTS ---------- */
   function viewSubjects(v){
     $("title").textContent="Subjects & topics";
@@ -503,6 +604,16 @@
       </div>
       <div class="sectiontitle">Theme</div>
       <div class="tile"><div class="themebtns" id="se-themes"></div></div>
+      <div class="sectiontitle">Parent reports (Telegram)</div>
+      <div class="tile">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Get a Telegram message with each quiz result. Needs a quick one-time setup — see the note I left you.</div>
+        <div class="field"><label>Bot token (shared by the family)</label><input id="tg-token" placeholder="123456:ABC-..." value="${esc(appConfig.telegram_token||"")}"></div>
+        <div class="field"><label>This account's chat ID</label><input id="tg-chat" placeholder="e.g. 123456789" value="${esc(profile.tg_chat_id||"")}"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px"><input type="checkbox" id="tg-on" ${profile.tg_enabled!==false?"checked":""} style="width:auto"> Send my quiz results</label>
+        <button class="btn primary sm" onclick="saveTelegram()">Save</button>
+        <button class="btn sm" onclick="tgTest()">Send test</button>
+        <div id="tg-msg" class="msg hidden"></div>
+      </div>
       <div class="sectiontitle">Backup</div>
       <div class="tile">
         <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Save all subjects &amp; questions to a file, or restore from one. Keep a copy somewhere safe.</div>
@@ -548,6 +659,40 @@
     if(p.length<6){ alert("Too short — please use at least 6 characters."); return; }
     const {error}=await client.auth.updateUser({password:p});
     alert(error?("Couldn't change password: "+error.message):"Password updated. Use it next time you sign in.");
+  }
+
+  /* ---------- TELEGRAM ---------- */
+  function tgmsg(k,t){ const m=$("tg-msg"); if(!m)return; m.className="msg "+(k||""); m.textContent=t; m.classList.remove("hidden"); }
+  async function saveTelegram(){
+    const token=$("tg-token").value.trim(), chat=$("tg-chat").value.trim(), on=$("tg-on").checked;
+    try{
+      const r1=await client.from("app_config").upsert({id:1, telegram_token:token||null},{onConflict:"id"}); if(r1.error) throw r1.error;
+      const r2=await client.from("profiles").update({tg_chat_id:chat||null, tg_enabled:on}).eq("id",me.id); if(r2.error) throw r2.error;
+      appConfig.telegram_token=token; profile.tg_chat_id=chat; profile.tg_enabled=on;
+      tgmsg("ok","Saved.");
+    }catch(e){ tgmsg("err","Couldn't save — did you run the Telegram setup step? ("+(e.message||e)+")"); }
+  }
+  async function tgSend(chatId, text){
+    if(!appConfig.telegram_token || !chatId) return {ok:false, error:"Not configured"};
+    try{
+      const res=await fetch("https://api.telegram.org/bot"+appConfig.telegram_token+"/sendMessage",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chat_id:chatId, text, parse_mode:"HTML"}) });
+      const j=await res.json(); return {ok:!!j.ok, error:j.description};
+    }catch(e){ return {ok:false, error:e.message}; }
+  }
+  async function tgTest(){
+    const token=$("tg-token").value.trim(), chat=$("tg-chat").value.trim();
+    if(!token||!chat){ tgmsg("err","Enter bot token and chat ID first."); return; }
+    appConfig.telegram_token=token; tgmsg("","Sending test…");
+    const r=await tgSend(chat, "✅ ExamForge test message — reports are working!");
+    tgmsg(r.ok?"ok":"err", r.ok?"Test sent! Check Telegram.":("Failed: "+(r.error||"unknown")));
+  }
+  async function tgSendReport(mode, result){
+    if(profile.tg_enabled===false || !profile.tg_chat_id || !appConfig.telegram_token) return;
+    const pct=Math.round(result.correct/result.total*100); const bySub={};
+    result.items.forEach(it=>{ const s=subjectById(it.q.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(isCorrect(it.q,it.choices,it.a))bySub[n].c++; });
+    const lines=Object.entries(bySub).map(([n,d])=>"• "+esc(n)+": "+d.c+"/"+d.t).join("\n");
+    const text="📚 <b>ExamForge</b>\n"+esc(profile.display_name||profile.email)+" finished a "+esc(mode)+" quiz.\nScore: <b>"+result.correct+"/"+result.total+" ("+pct+"%)</b>\n"+lines;
+    tgSend(profile.tg_chat_id, text);
   }
 
   /* ---------- BACKUP / RESTORE ---------- */
@@ -737,6 +882,7 @@
     try{ const {data:att,error}=await client.from("attempts").insert({ mode:quiz.mode, total:quiz.items.length, correct, score:correct, duration_sec:duration }).select("id").single();
       if(!error && att) await client.from("answers").insert(rows.map(r=>({...r, attempt_id:att.id}))); }catch(e){}
     const result={ total:quiz.items.length, correct, items:quiz.items.map(it=>({q:it.q, choices:it.choices, a:quiz.answers[it.q.id]||{}})) };
+    try{ tgSendReport(quiz.mode, result); }catch(e){}
     quiz=null; $("nav").style.display="flex"; showResults(result);
   }
   function perfColor(p){ return p>=75?'#1fbf75':p>=50?'#e08a1e':'#d8456b'; }
