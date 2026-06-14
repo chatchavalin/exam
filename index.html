@@ -748,19 +748,25 @@
       if(imgPdf){ try{ const page=await imgPdf.getPage(curPage+1); const vp=page.getViewport({scale:3}); const hc=document.createElement("canvas"); hc.width=vp.width; hc.height=vp.height; await page.render({canvasContext:hc.getContext("2d"),viewport:vp}).promise; ocrCanvas=hc; }catch(_){ ocrCanvas=c; } }
       const W=ocrCanvas.width; const ratio=srcH/ocrCanvas.height;
       const worker=await T.createWorker("tha+eng");
-      let data;
-      try{ ({data}=await worker.recognize(ocrCanvas,{},{blocks:true})); }
-      catch(_){ ({data}=await worker.recognize(ocrCanvas)); }
+      let tsv="", words=[];
+      try{
+        const r=await worker.recognize(ocrCanvas,{},{tsv:true,blocks:true});
+        tsv=(r.data&&r.data.tsv)||"";
+        if(r.data&&r.data.words&&r.data.words.length) words=r.data.words;
+        else if(r.data&&r.data.blocks) r.data.blocks.forEach(bl=>(bl.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(ln=>(ln.words||[]).forEach(w=>words.push(w)))));
+      }catch(_){ try{ const r=await worker.recognize(ocrCanvas); tsv=(r.data&&r.data.tsv)||""; if(r.data&&r.data.words) words=r.data.words; }catch(e2){} }
       await worker.terminate();
-      let words=[];
-      if(data && data.words && data.words.length) words=data.words;
-      else if(data && data.blocks) data.blocks.forEach(bl=>(bl.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(ln=>(ln.words||[]).forEach(w=>words.push(w)))));
       const nums=[];
-      words.forEach(w=>{ const t=(w.text||"").trim(); const b=w.bbox||{}; const conf=w.confidence||0; const h=(b.y1-b.y0)||0;
-        if(/^\d{1,3}[.\)]/.test(t) && b.x0 < W*0.18 && conf>25 && h>10) nums.push(b.y0*ratio); });
+      if(tsv){
+        tsv.split("\n").forEach(line=>{ const p=line.split("\t"); if(p.length<12) return; const left=+p[6], top=+p[7], h=+p[9], conf=parseFloat(p[10]); const text=(p[11]||"").trim();
+          if(text && /^\d{1,3}[.\)]/.test(text) && left < W*0.18 && (isNaN(conf)||conf>25) && h>10) nums.push(top*ratio); });
+      } else {
+        words.forEach(w=>{ const t=(w.text||"").trim(); const b=w.bbox||{}; const conf=w.confidence||0; const h=(b.y1-b.y0)||0;
+          if(/^\d{1,3}[.\)]/.test(t) && b.x0 < W*0.18 && conf>25 && h>10) nums.push(b.y0*ratio); });
+      }
       nums.sort((a,b)=>a-b);
       const merged=[]; nums.forEach(y=>{ if(!merged.length || y-merged[merged.length-1] > srcH*0.02) merged.push(y); });
-      if(!merged.length){ set("OCR couldn't find clear question numbers on this page — add lines by tapping."); return; }
+      if(!merged.length){ const seen=tsv?tsv.split("\n").filter(l=>{const p=l.split("\t");return p.length>=12&&(p[11]||"").trim();}).length:words.length; set(`OCR read ${seen} text bits but couldn't pick out question numbers here. Add lines by tapping.`); return; }
       linesByPage[curPage]=merged.map(y=>snapY(curPage, Math.max(0,Math.round(y-6)))).filter(y=>y>4 && y<srcH-4).sort((a,b)=>a-b);
       renderCutLines();
       set(`OCR placed ${linesByPage[curPage].length} line(s) on page ${curPage+1}. Fix any it missed, then continue.`);
