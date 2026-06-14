@@ -94,6 +94,20 @@
   .seg{ display:flex; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; }
   .seg button{ flex:1; background:var(--card); border:none; padding:10px; font-weight:600; font-size:13.5px; color:var(--muted); }
   .seg button.on{ background:var(--accent); color:#fff; }
+  .opt{ display:block; width:100%; text-align:left; background:var(--card); border:1.5px solid var(--line); border-radius:11px; padding:13px 14px; margin-bottom:9px; font-size:14.5px; color:var(--ink); }
+  .opt .ol{ display:inline-grid; place-items:center; width:24px; height:24px; border-radius:6px; background:var(--line); font-weight:700; font-size:12px; margin-right:8px; vertical-align:middle; }
+  .opt.sel{ border-color:var(--accent); background:rgba(124,77,255,.08); }
+  .opt.correct{ border-color:var(--ok); background:rgba(31,191,117,.12); }
+  .opt.wrong{ border-color:var(--danger); background:rgba(216,69,107,.1); }
+  .qhead{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:4px 0 10px; }
+  .qhead .prog{ font-weight:700; } .qhead .timer{ font-family:var(--fd); font-weight:700; color:var(--accent); font-size:17px; }
+  .gridnav{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .gn{ width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line); background:var(--card); color:var(--muted); font-size:12px; font-weight:600; }
+  .gn.cur{ border-color:var(--accent); color:var(--accent); }
+  .gn.done{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .gn.flag{ box-shadow:0 0 0 2px var(--warn) inset; }
+  .fab{ position:fixed; right:18px; bottom:24px; width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-size:21px; box-shadow:0 8px 20px -6px var(--accent); z-index:9; }
+  .bar{ height:8px; background:var(--line); border-radius:6px; overflow:hidden; }
 </style>
 </head>
 <body>
@@ -271,7 +285,8 @@
       if(route==="dashboard") viewDashboard(v);
       else if(route==="bank") viewBank(v);
       else if(route==="settings") viewSettings(v);
-      else if(route==="quiz"||route==="stats") v.innerHTML = `<div class="empty">✨ This arrives in the next update.<br>Build your question bank first!</div>`;
+      else if(route==="quiz") viewQuiz(v);
+      else if(route==="stats") viewStats(v);
     }catch(e){ v.innerHTML = `<div class="msg err">Error: ${e.message}</div>`; }
   }
 
@@ -510,12 +525,196 @@
   }
   async function signOut(){ await client.auth.signOut(); location.reload(); }
 
+  /* ---------- QUIZ ---------- */
+  const LOCK_WORDS = ["ถูกทุกข้อ","ผิดทุกข้อ","ไม่มีข้อ","ทั้งหมด","ถูกทั้ง","all of","none of","both ","ก และ","ข และ"];
+  function isLocked(choices){ return choices.some(c=>{ const t=(c.content||"").toLowerCase(); return LOCK_WORDS.some(w=>t.includes(w.toLowerCase())); }); }
+  function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  let quiz=null, timerInt=null;
+
+  function viewQuiz(v){
+    const subs=state.subjects;
+    v.innerHTML = `
+      <div class="sectiontitle">New quiz</div>
+      <div class="tile">
+        <div class="field"><label>Mode</label>
+          <div class="themebtns" id="qz-mode">${["practice","exam","study","flashcard"].map((md,i)=>`<button data-v="${md}" class="${i===0?'on':''}">${cap(md)}</button>`).join("")}</div>
+        </div>
+        <div class="field"><label>Subject</label><select id="qz-sub"><option value="">All subjects</option>${subs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
+        <div class="field"><label>Sub-topic</label><select id="qz-st"><option value="">All sub-topics</option></select></div>
+        <div class="field"><label>Grade</label><select id="qz-grade"><option value="">All</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div>
+        <div class="row">
+          <div class="field"><label>Questions</label><select id="qz-count"><option>10</option><option>20</option><option>30</option><option>40</option><option>50</option></select></div>
+          <div class="field" id="qz-time-wrap"><label>Min / question</label><select id="qz-time"><option value="60">1</option><option value="120">2</option><option value="180">3</option><option value="240">4</option><option value="300">5</option></select></div>
+        </div>
+        <div id="qz-msg" class="msg hidden"></div>
+        <button class="btn primary" style="width:100%" onclick="startQuiz(false)">Start quiz</button>
+      </div>
+      <div class="sectiontitle">Practice your mistakes</div>
+      <div class="tile"><div style="color:var(--muted);font-size:13.5px;margin-bottom:10px">Quiz only questions you've gotten wrong before.</div><button class="btn" onclick="startQuiz(true)">Start mistakes quiz</button></div>`;
+    let mode="practice";
+    v.querySelectorAll("#qz-mode button").forEach(b=>b.onclick=()=>{ mode=b.dataset.v; v.querySelectorAll("#qz-mode button").forEach(x=>x.classList.toggle("on",x===b)); $("qz-time-wrap").style.display=(mode==='study'||mode==='flashcard')?'none':'block'; });
+    v._mode=()=>mode;
+    $("qz-sub").onchange=(e)=>{ $("qz-st").innerHTML=`<option value="">All sub-topics</option>`+subtopicsOf(e.target.value).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join(""); };
+  }
+  function qzmsg(t){ const m=$("qz-msg"); if(m){ m.className="msg err"; m.textContent=t; m.classList.remove("hidden"); } }
+
+  async function startQuiz(mistakes){
+    const v=$("view"); const mode = mistakes ? "practice" : v._mode();
+    const sub=$("qz-sub")?.value||"", st=$("qz-st")?.value||"", grade=$("qz-grade")?.value||"";
+    const count=parseInt($("qz-count")?.value||"10",10), perQ=parseInt($("qz-time")?.value||"60",10);
+    let ids=null;
+    if(mistakes){ const {data:wrong}=await client.from("answers").select("question_id").eq("is_correct",false);
+      ids=[...new Set((wrong||[]).map(w=>w.question_id).filter(Boolean))]; if(!ids.length){ qzmsg("No past mistakes yet — take a quiz first."); return; } }
+    let qy=client.from("questions").select("*");
+    if(sub) qy=qy.eq("subject_id",sub); if(st) qy=qy.eq("subtopic_id",st); if(grade) qy=qy.eq("grade",grade); if(ids) qy=qy.in("id",ids);
+    const {data:qs}=await qy;
+    if(!qs||!qs.length){ qzmsg("No matching questions. Add more to your bank or widen the filters."); return; }
+    const picked=shuffle(qs).slice(0,count);
+    const {data:allCh}=await client.from("choices").select("*").in("question_id",picked.map(q=>q.id));
+    const items=picked.map(q=>{ let chs=(allCh||[]).filter(c=>c.question_id===q.id).sort((a,b)=>a.position-b.position);
+      if(q.type!=="written" && !isLocked(chs)) chs=shuffle(chs); return {q, choices:chs}; });
+    const timed=(mode==="practice"||mode==="exam");
+    quiz={ items, idx:0, mode, timed, perQ, timeLeft: timed?items.length*perQ:0, answers:{}, flags:new Set(), startedAt:Date.now(), paused:false };
+    $("nav").style.display="none"; $("title").textContent=cap(mode)+" quiz";
+    if(timed){ clearInterval(timerInt); timerInt=setInterval(()=>{ if(quiz&&!quiz.paused){ quiz.timeLeft--; updateTimer(); if(quiz.timeLeft<=0){ clearInterval(timerInt); submitQuiz(true); } } },1000); }
+    renderQ();
+  }
+  function updateTimer(){ const t=$("qz-timer"); if(t&&quiz){ const m=Math.floor(quiz.timeLeft/60), s=quiz.timeLeft%60; t.textContent=`${m}:${String(s).padStart(2,'0')}`; } }
+
+  function renderQ(){
+    const v=$("view"); const it=quiz.items[quiz.idx], q=it.q, a=quiz.answers[q.id]||{};
+    let body="";
+    if(q.passage) body+=`<div class="tile" style="font-size:13.5px;white-space:pre-wrap;background:rgba(124,77,255,.05)">${esc(q.passage)}</div>`;
+    body+=`<div style="font-weight:600;font-size:16px;margin:6px 0 14px">${esc(q.stem)}</div>`;
+    if(q.type==="written"){
+      const revealed = a.submitted || quiz.mode==="study";
+      body+=`<textarea id="wr" placeholder="Type your answer">${esc(a.written||"")}</textarea>`;
+      if(!revealed){ body+=`<button class="btn primary sm" style="margin-top:8px" onclick="submitWritten()">Check answer</button>`; }
+      else{ body+=`<div class="tile" style="margin-top:10px"><div style="font-size:12px;color:var(--muted)">Model answer</div>${esc(q.answer_text||"—")}</div>`;
+        if(quiz.mode!=="study"){ body+=`<div class="row" style="margin-top:8px"><button class="btn" style="background:rgba(31,191,117,.15);color:var(--ok)" onclick="gradeWritten(true)">I got it right</button><button class="btn danger" onclick="gradeWritten(false)">I got it wrong</button></div>`; }
+        if(a.self_graded) body+=`<div class="msg ${a.correct?'ok':'err'}">Marked ${a.correct?'correct':'wrong'}.</div>`;
+      }
+    } else {
+      const reveal=(quiz.mode==="practice"&&a.submitted)||quiz.mode==="study"||(quiz.mode==="flashcard"&&a.revealed);
+      const multi=q.answer_mode==="multi";
+      body+=it.choices.map(c=>{ const sel=(a.chosen||[]).includes(c.id); let cls="opt";
+        if(reveal){ if(c.is_correct)cls+=" correct"; else if(sel)cls+=" wrong"; } else if(sel)cls+=" sel";
+        return `<button class="${cls}" onclick="pick('${c.id}')" ${reveal?"disabled":""}><span class="ol">${c.label}</span>${esc(c.content)}</button>`; }).join("");
+      if(multi && quiz.mode==="practice" && !reveal) body+=`<button class="btn primary sm" style="margin-top:6px" onclick="checkMulti()">Check answer</button>`;
+      if(quiz.mode==="flashcard" && !reveal) body+=`<button class="btn sm" style="margin-top:6px" onclick="revealCard()">Show answer</button>`;
+      if(reveal && q.explanation) body+=`<div class="tile" style="margin-top:10px;background:rgba(124,77,255,.06)"><div style="font-size:12px;color:var(--muted)">Explanation</div>${esc(q.explanation)}</div>`;
+    }
+    v.innerHTML = `
+      <div class="qhead">
+        <button class="btn sm" onclick="exitQuiz()">✕</button>
+        <div class="prog">${quiz.idx+1} / ${quiz.items.length}</div>
+        ${quiz.timed?`<div class="timer" id="qz-timer"></div>`:`<div></div>`}
+        <button class="btn sm" onclick="togglePause()">${quiz.paused?"▶ Resume":"❚❚"}</button>
+      </div>
+      <div class="gridnav">${quiz.items.map((x,i)=>{ const aa=quiz.answers[x.q.id]; let c="gn"; if(i===quiz.idx)c+=" cur"; if(aa&&((aa.chosen&&aa.chosen.length)||aa.written||aa.submitted))c+=" done"; if(quiz.flags.has(i))c+=" flag"; return `<button class="${c}" onclick="jump(${i})">${i+1}</button>`; }).join("")}</div>
+      <div class="tile">${quiz.paused?'<div class="empty">Paused — tap Resume up top.</div>':body}</div>
+      <div class="row" style="margin-top:4px">
+        <button class="btn" onclick="prevQ()" ${quiz.idx===0?"disabled":""}>← Prev</button>
+        <button class="btn" style="flex:none" onclick="toggleFlag()">${quiz.flags.has(quiz.idx)?"★":"☆"}</button>
+        ${quiz.idx<quiz.items.length-1?`<button class="btn primary" onclick="nextQ()">Next →</button>`:`<button class="btn primary" onclick="submitQuiz(false)">Finish</button>`}
+      </div>
+      <button class="fab" onclick="openNotes()">✎</button>`;
+    updateTimer();
+    if(q.type==="written" && !quiz.paused){ const wr=$("wr"); if(wr) wr.oninput=()=>{ quiz.answers[q.id]={...(quiz.answers[q.id]||{}), written:wr.value}; }; }
+  }
+  function pick(cid){
+    const it=quiz.items[quiz.idx], q=it.q; const a=quiz.answers[q.id]||{chosen:[]};
+    if(q.answer_mode==="multi"){ a.chosen=a.chosen||[]; const i=a.chosen.indexOf(cid); if(i>=0)a.chosen.splice(i,1); else a.chosen.push(cid); }
+    else { a.chosen=[cid]; if(quiz.mode==="practice"){ a.submitted=true; a.correct=isCorrect(q,it.choices,a); } }
+    quiz.answers[q.id]=a; renderQ();
+  }
+  function checkMulti(){ const it=quiz.items[quiz.idx], q=it.q; const a=quiz.answers[q.id]||{chosen:[]}; if(quiz.mode==="practice"){ a.submitted=true; a.correct=isCorrect(q,it.choices,a); } quiz.answers[q.id]=a; renderQ(); }
+  function submitWritten(){ const q=quiz.items[quiz.idx].q; const a=quiz.answers[q.id]||{}; const wr=$("wr"); if(wr)a.written=wr.value; a.submitted=true; quiz.answers[q.id]=a; renderQ(); }
+  function gradeWritten(ok){ const q=quiz.items[quiz.idx].q; const a=quiz.answers[q.id]||{}; a.submitted=true; a.self_graded=true; a.correct=ok; quiz.answers[q.id]=a; renderQ(); }
+  function revealCard(){ const q=quiz.items[quiz.idx].q; quiz.answers[q.id]={...(quiz.answers[q.id]||{}), revealed:true}; renderQ(); }
+  function isCorrect(q,choices,a){ if(!a) return false; if(q.type==="written") return !!a.correct;
+    const cc=choices.filter(c=>c.is_correct).map(c=>c.id).sort(); const ch=(a.chosen||[]).slice().sort();
+    return cc.length>0 && cc.length===ch.length && cc.every((x,i)=>x===ch[i]); }
+  function nextQ(){ if(quiz.idx<quiz.items.length-1){ quiz.idx++; renderQ(); } }
+  function prevQ(){ if(quiz.idx>0){ quiz.idx--; renderQ(); } }
+  function jump(i){ quiz.idx=i; renderQ(); }
+  function toggleFlag(){ if(quiz.flags.has(quiz.idx))quiz.flags.delete(quiz.idx); else quiz.flags.add(quiz.idx); renderQ(); }
+  function togglePause(){ quiz.paused=!quiz.paused; renderQ(); }
+  function exitQuiz(){ if(confirm("Leave this quiz? Progress won't be saved.")){ clearInterval(timerInt); quiz=null; $("nav").style.display="flex"; go("quiz"); } }
+
+  async function submitQuiz(auto){
+    clearInterval(timerInt);
+    const scored=(quiz.mode==="practice"||quiz.mode==="exam");
+    if(!scored){ quiz=null; $("nav").style.display="flex"; go("quiz"); return; }
+    let correct=0; const rows=[]; const duration=Math.round((Date.now()-quiz.startedAt)/1000);
+    quiz.items.forEach(it=>{ const q=it.q, a=quiz.answers[q.id]||{}; const ok=isCorrect(q,it.choices,a); if(ok)correct++;
+      rows.push({ question_id:q.id, subject_id:q.subject_id, subtopic_id:q.subtopic_id, chosen:a.chosen||null, written_text:a.written||null, is_correct:ok, self_graded:!!a.self_graded, time_sec:0 }); });
+    try{ const {data:att,error}=await client.from("attempts").insert({ mode:quiz.mode, total:quiz.items.length, correct, score:correct, duration_sec:duration }).select("id").single();
+      if(!error && att) await client.from("answers").insert(rows.map(r=>({...r, attempt_id:att.id}))); }catch(e){}
+    const result={ total:quiz.items.length, correct, items:quiz.items.map(it=>({q:it.q, choices:it.choices, a:quiz.answers[it.q.id]||{}})) };
+    quiz=null; $("nav").style.display="flex"; showResults(result);
+  }
+  function perfColor(p){ return p>=75?'#1fbf75':p>=50?'#e08a1e':'#d8456b'; }
+  function barRow(name,c,t){ const p=t?Math.round(c/t*100):0; return `<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${esc(name)}</span><span style="color:var(--muted)">${c}/${t} · ${p}%</span></div><div class="bar"><div style="height:100%;width:${p}%;background:${perfColor(p)}"></div></div></div>`; }
+  function showResults(r){
+    const pct=Math.round(r.correct/r.total*100); const bySub={};
+    r.items.forEach(it=>{ const s=subjectById(it.q.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(isCorrect(it.q,it.choices,it.a))bySub[n].c++; });
+    state.route="quiz"; $("title").textContent="Results"; [...$("nav").children].forEach(b=>b.classList.toggle("on",b.dataset.k==="quiz"));
+    $("view").innerHTML=`
+      <div class="tile" style="text-align:center"><div style="font-family:var(--fd);font-size:46px;font-weight:700;color:${perfColor(pct)}">${pct}%</div><div style="color:var(--muted)">${r.correct} of ${r.total} correct</div></div>
+      <div class="sectiontitle">By subject</div>
+      <div class="tile">${Object.entries(bySub).map(([n,d])=>barRow(n,d.c,d.t)).join("")}</div>
+      <div class="sectiontitle">Review</div>
+      ${r.items.map((it,i)=>{ const ok=isCorrect(it.q,it.choices,it.a); const correctTxt=it.q.type==="written"?esc(it.q.answer_text||"—"):it.choices.filter(c=>c.is_correct).map(c=>c.label+". "+esc(c.content)).join(", ");
+        return `<div class="tile"><div style="display:flex;gap:8px"><span style="color:${ok?'var(--ok)':'var(--danger)'};font-weight:700">${ok?'✓':'✗'}</span><div style="flex:1"><div style="font-weight:600;font-size:14px">${i+1}. ${esc(it.q.stem)}</div><div style="font-size:12.5px;color:var(--muted);margin-top:4px">Correct: ${correctTxt}</div>${it.q.explanation?`<div style="font-size:12.5px;margin-top:4px">${esc(it.q.explanation)}</div>`:""}</div></div></div>`; }).join("")}
+      <div class="row" style="margin-top:12px"><button class="btn" onclick="go('dashboard')">Dashboard</button><button class="btn primary" onclick="go('quiz')">New quiz</button></div>`;
+  }
+
+  /* ---------- STATS ---------- */
+  async function viewStats(v){
+    v.innerHTML=`<div class="empty">Loading…</div>`;
+    const [{data:answers},{data:attempts}] = await Promise.all([
+      client.from("answers").select("is_correct,subject_id,created_at"),
+      client.from("attempts").select("created_at,total")
+    ]);
+    if(!answers||!answers.length){ v.innerHTML=`<div class="empty">No quiz data yet.<br>Take a quiz to see your stats!</div>`; return; }
+    const total=answers.length, correct=answers.filter(a=>a.is_correct).length; const bySub={};
+    answers.forEach(a=>{ const s=subjectById(a.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(a.is_correct)bySub[n].c++; });
+    const entries=Object.entries(bySub).map(([n,d])=>[n,d.c,d.t,d.t?Math.round(d.c/d.t*100):0]).sort((a,b)=>a[3]-b[3]);
+    const weakest=entries[0], strongest=entries[entries.length-1];
+    const days={}; (attempts||[]).forEach(at=>{ const d=(at.created_at||"").slice(0,10); days[d]=(days[d]||0)+(at.total||0); });
+    const last=Object.entries(days).sort().slice(-14);
+    v.innerHTML=`
+      <div class="grid2">
+        <div class="stat"><div class="n">${Math.round(correct/total*100)}%</div><div class="l">Overall accuracy</div></div>
+        <div class="stat"><div class="n">${total}</div><div class="l">Questions answered</div></div>
+      </div>
+      ${entries.length>1?`<div class="tile" style="margin-top:12px;font-size:13.5px"><b style="color:var(--ok)">Strongest:</b> ${esc(strongest[0])} (${strongest[3]}%)<br><b style="color:var(--danger)">Weakest:</b> ${esc(weakest[0])} (${weakest[3]}%)</div>`:""}
+      <div class="sectiontitle">By subject</div>
+      <div class="tile">${entries.map(e=>barRow(e[0],e[1],e[2])).join("")}</div>
+      <div class="sectiontitle">Recent activity</div>
+      <div class="tile">${last.length?last.map(([d,n])=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span style="color:var(--muted)">${d}</span><span>${n} questions</span></div>`).join(""):'<div class="empty">No attempts yet.</div>'}</div>`;
+  }
+
+  /* ---------- NOTEPAD ---------- */
+  async function openNotes(){
+    let content=""; try{ const {data}=await client.from("notes").select("content").eq("user_id",me.id).single(); content=data?.content||""; }catch(e){}
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="sheet"><button class="close" onclick="closeModal()">×</button><h3>Notepad</h3><p style="color:var(--muted);font-size:12.5px;margin:0 0 10px">Scratch space — tap Done to save.</p><textarea id="np" style="min-height:200px">${esc(content)}</textarea><button class="btn primary" style="margin-top:10px;width:100%" onclick="saveNotes()">Done</button></div>`;
+    $("modal-root").appendChild(m);
+  }
+  async function saveNotes(){ const t=$("np").value; try{ await client.from("notes").upsert({user_id:me.id, content:t, updated_at:new Date().toISOString()},{onConflict:"user_id"}); }catch(e){} closeModal(); }
+
   /* ---------- utils ---------- */
   function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
   function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
   window.go=go; window.go2=go2; window.openQ=openQ; window.saveQ=saveQ; window.delQ=delQ;
   window.addSubject=addSubject; window.delSubject=delSubject; window.addTopic=addTopic; window.delTopic=delTopic;
   window.saveProfile=saveProfile; window.signOut=signOut;
+  window.startQuiz=startQuiz; window.pick=pick; window.checkMulti=checkMulti; window.submitWritten=submitWritten;
+  window.gradeWritten=gradeWritten; window.revealCard=revealCard; window.nextQ=nextQ; window.prevQ=prevQ;
+  window.jump=jump; window.toggleFlag=toggleFlag; window.togglePause=togglePause; window.exitQuiz=exitQuiz;
+  window.submitQuiz=submitQuiz; window.openNotes=openNotes; window.saveNotes=saveNotes;
 
   /* ---------- start ---------- */
   ensureClient(); if(!client) loadLib();
