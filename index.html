@@ -9,102 +9,49 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --green: #1fbf75;
-    --green-deep: #0f9d63;
-    --purple: #7c4dff;
-    --purple-deep: #5b2ed6;
-    --ink: #1a1730;
-    --muted: #6b6685;
-    --bg: #f7f6fb;
-    --card: #ffffff;
-    --line: #e9e6f2;
-    --danger: #d8456b;
-    --radius: 18px;
-    --shadow: 0 18px 50px -20px rgba(46, 30, 120, .35);
-    --font-display: "Space Grotesk", system-ui, sans-serif;
-    --font-body: "Inter", system-ui, sans-serif;
+    --green:#1fbf75; --green-deep:#0f9d63; --purple:#7c4dff; --purple-deep:#5b2ed6;
+    --ink:#1a1730; --muted:#6b6685; --bg:#f7f6fb; --card:#fff; --line:#e9e6f2; --danger:#d8456b;
+    --radius:18px; --shadow:0 18px 50px -20px rgba(46,30,120,.35);
+    --font-display:"Space Grotesk",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink: #f2f0ff; --muted: #a39fc2; --bg: #100d1f;
-      --card: #1a1730; --line: #2b2748; --shadow: 0 18px 50px -20px rgba(0,0,0,.6);
-    }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#f2f0ff; --muted:#a39fc2; --bg:#100d1f; --card:#1a1730; --line:#2b2748; --shadow:0 18px 50px -20px rgba(0,0,0,.6); }
   }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--bg);
-    -webkit-font-smoothing: antialiased; display: grid; place-items: center;
-    padding: 24px; position: relative; overflow: hidden;
-  }
-  .field { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
-  .field::before, .field::after {
-    content: ""; position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%;
-    filter: blur(70px); opacity: .55;
-  }
-  .field::before {
-    background: radial-gradient(circle at center, var(--green), transparent 60%);
-    top: -18vmax; left: -12vmax; animation: drift1 18s ease-in-out infinite alternate;
-  }
-  .field::after {
-    background: radial-gradient(circle at center, var(--purple), transparent 60%);
-    bottom: -20vmax; right: -14vmax; animation: drift2 22s ease-in-out infinite alternate;
-  }
-  @keyframes drift1 { to { transform: translate(8vmax, 6vmax) scale(1.1); } }
-  @keyframes drift2 { to { transform: translate(-7vmax, -5vmax) scale(1.15); } }
-  @media (prefers-reduced-motion: reduce) { .field::before, .field::after { animation: none; } }
-  .card {
-    position: relative; z-index: 1; width: 100%; max-width: 420px;
-    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 38px 34px 30px;
-  }
-  .brand { display: flex; align-items: center; gap: 11px; margin-bottom: 26px; }
-  .spark {
-    width: 34px; height: 34px; border-radius: 10px;
-    background: linear-gradient(135deg, var(--green), var(--purple));
-    display: grid; place-items: center; flex: none; box-shadow: 0 6px 18px -6px var(--purple);
-  }
-  .spark svg { width: 19px; height: 19px; }
-  .wordmark { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
-  h1 { font-family: var(--font-display); font-weight: 600; font-size: 26px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.02em; }
-  .sub { color: var(--muted); font-size: 14.5px; line-height: 1.5; margin: 0 0 24px; }
-  label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 8px; }
-  input[type="email"] {
-    width: 100%; font-family: var(--font-body); font-size: 16px; color: var(--ink);
-    padding: 13px 15px; border: 1.5px solid var(--line); border-radius: 12px;
-    background: transparent; transition: border-color .15s, box-shadow .15s;
-  }
-  input[type="email"]:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 4px rgba(124, 77, 255, .15); }
-  button.primary {
-    width: 100%; margin-top: 16px; cursor: pointer;
-    font-family: var(--font-display); font-weight: 600; font-size: 15.5px; color: #fff;
-    padding: 14px 16px; border: none; border-radius: 12px;
-    background: linear-gradient(135deg, var(--green-deep), var(--purple-deep));
-    transition: transform .12s, filter .15s, opacity .15s;
-  }
-  button.primary:hover { filter: brightness(1.07); }
-  button.primary:active { transform: translateY(1px); }
-  button.primary:disabled { opacity: .55; cursor: default; }
-  .ghost {
-    background: none; border: none; color: var(--purple); font-family: var(--font-body);
-    font-weight: 600; font-size: 14px; cursor: pointer; padding: 6px; margin-top: 14px;
-  }
-  .msg { margin-top: 16px; font-size: 13.5px; line-height: 1.5; border-radius: 12px; padding: 12px 14px; }
-  .msg.info { background: rgba(124,77,255,.08); color: var(--ink); border: 1px solid var(--line); }
-  .msg.ok   { background: rgba(31,191,117,.12); color: var(--green-deep); }
-  .msg.err  { background: rgba(216,69,107,.10); color: var(--danger); }
-  .hidden { display: none !important; }
-  .signed-email { font-weight: 600; }
-  .foot { margin-top: 26px; font-size: 12px; color: var(--muted); text-align: center; }
+  *{box-sizing:border-box;} html,body{height:100%;}
+  body{ margin:0; font-family:var(--font-body); color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; display:grid; place-items:center; padding:24px; position:relative; overflow:hidden; }
+  .field{ position:fixed; inset:0; z-index:0; overflow:hidden; }
+  .field::before,.field::after{ content:""; position:absolute; width:60vmax; height:60vmax; border-radius:50%; filter:blur(70px); opacity:.55; }
+  .field::before{ background:radial-gradient(circle at center,var(--green),transparent 60%); top:-18vmax; left:-12vmax; animation:drift1 18s ease-in-out infinite alternate; }
+  .field::after{ background:radial-gradient(circle at center,var(--purple),transparent 60%); bottom:-20vmax; right:-14vmax; animation:drift2 22s ease-in-out infinite alternate; }
+  @keyframes drift1{ to{ transform:translate(8vmax,6vmax) scale(1.1);} }
+  @keyframes drift2{ to{ transform:translate(-7vmax,-5vmax) scale(1.15);} }
+  @media (prefers-reduced-motion: reduce){ .field::before,.field::after{ animation:none; } }
+  .card{ position:relative; z-index:1; width:100%; max-width:420px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:38px 34px 30px; }
+  .brand{ display:flex; align-items:center; gap:11px; margin-bottom:26px; }
+  .spark{ width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--green),var(--purple)); display:grid; place-items:center; flex:none; box-shadow:0 6px 18px -6px var(--purple); }
+  .spark svg{ width:19px; height:19px; }
+  .wordmark{ font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.02em; }
+  h1{ font-family:var(--font-display); font-weight:600; font-size:26px; line-height:1.2; margin:0 0 8px; letter-spacing:-.02em; }
+  .sub{ color:var(--muted); font-size:14.5px; line-height:1.5; margin:0 0 24px; }
+  label{ display:block; font-size:13px; font-weight:600; margin:0 0 8px; }
+  input[type="email"]{ width:100%; font-family:var(--font-body); font-size:16px; color:var(--ink); padding:13px 15px; border:1.5px solid var(--line); border-radius:12px; background:transparent; transition:border-color .15s,box-shadow .15s; }
+  input[type="email"]:focus{ outline:none; border-color:var(--purple); box-shadow:0 0 0 4px rgba(124,77,255,.15); }
+  button.primary{ width:100%; margin-top:16px; cursor:pointer; font-family:var(--font-display); font-weight:600; font-size:15.5px; color:#fff; padding:14px 16px; border:none; border-radius:12px; background:linear-gradient(135deg,var(--green-deep),var(--purple-deep)); transition:transform .12s,filter .15s,opacity .15s; }
+  button.primary:hover{ filter:brightness(1.07); } button.primary:active{ transform:translateY(1px); } button.primary:disabled{ opacity:.55; cursor:default; }
+  .ghost{ background:none; border:none; color:var(--purple); font-family:var(--font-body); font-weight:600; font-size:14px; cursor:pointer; padding:6px; margin-top:14px; }
+  .msg{ margin-top:16px; font-size:13.5px; line-height:1.5; border-radius:12px; padding:12px 14px; }
+  .msg.info{ background:rgba(124,77,255,.08); color:var(--ink); border:1px solid var(--line); }
+  .msg.ok{ background:rgba(31,191,117,.12); color:var(--green-deep); }
+  .msg.err{ background:rgba(216,69,107,.10); color:var(--danger); }
+  .hidden{ display:none !important; }
+  .signed-email{ font-weight:600; } .foot{ margin-top:26px; font-size:12px; color:var(--muted); text-align:center; }
 </style>
 </head>
 <body>
   <div class="field" aria-hidden="true"></div>
   <main class="card">
     <div class="brand">
-      <span class="spark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg>
-      </span>
+      <span class="spark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span>
       <span class="wordmark">ExamForge</span>
     </div>
     <section id="view-login">
@@ -123,65 +70,70 @@
     <section id="view-app" class="hidden">
       <h1>You're in 🎉</h1>
       <p class="sub">Signed in as <span class="signed-email" id="app-email"></span>.</p>
-      <div class="msg ok">Phase 0 complete — the pipeline works end to end: this page is live, talking to your database, and logging you in securely. Next we build profiles and the question bank.</div>
+      <div class="msg ok">Phase 0 complete — the pipeline works end to end. Next we build profiles and the question bank.</div>
       <button class="ghost" id="signout-btn">Sign out</button>
     </section>
     <p class="foot">ExamForge · private family edition</p>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
     const SUPABASE_URL = "https://ziuhrptqgscrhpxytjqc.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_5dy99I-YB_7l4qjGqOwtkQ_iJ4_RDhR";
-    const ALLOWED_EMAILS = [
-      "chatchavalin@gmail.com",
-      "numooynumooy@gmail.com",
-      "mansikarn.d@gmail.com",
-      "praritsak@gmail.com",
-    ];
+    const ALLOWED_EMAILS = ["chatchavalin@gmail.com","numooynumooy@gmail.com","mansikarn.d@gmail.com","praritsak@gmail.com"];
+
     const $ = (id) => document.getElementById(id);
-    const views = { login: $("view-login"), sent: $("view-sent"), app: $("view-app") };
-    const show = (name) => Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== name));
+    const views = { login:$("view-login"), sent:$("view-sent"), app:$("view-app") };
+    const show = (n) => Object.entries(views).forEach(([k,el]) => el.classList.toggle("hidden", k!==n));
     const loginMsg = $("login-msg");
-    function tell(kind, text) { loginMsg.className = "msg " + kind; loginMsg.textContent = text; loginMsg.classList.remove("hidden"); }
-    function clearTell() { loginMsg.classList.add("hidden"); }
-    const configured = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
-    let supabase = null;
-    if (configured) {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      supabase.auth.onAuthStateChange((_event, session) => {
-        const email = session?.user?.email?.toLowerCase();
-        if (email && ALLOWED_EMAILS.includes(email)) { $("app-email").textContent = email; show("app"); }
-        else if (email) { supabase.auth.signOut(); }
-      });
-      supabase.auth.getSession().then(({ data }) => {
-        const email = data?.session?.user?.email?.toLowerCase();
-        if (email && ALLOWED_EMAILS.includes(email)) { $("app-email").textContent = email; show("app"); }
-      });
+    const tell = (k,t) => { loginMsg.className = "msg "+k; loginMsg.textContent = t; loginMsg.classList.remove("hidden"); };
+    const clearTell = () => loginMsg.classList.add("hidden");
+
+    let client = null;
+    function handleSession(session){
+      const email = session?.user?.email?.toLowerCase();
+      if (email && ALLOWED_EMAILS.includes(email)){ $("app-email").textContent = email; show("app"); }
+      else if (email && client){ client.auth.signOut(); }
     }
+    function ensureClient(){
+      if (client) return client;
+      if (window.supabase && window.supabase.createClient){
+        client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        client.auth.onAuthStateChange((_e, s) => handleSession(s));
+        client.auth.getSession().then(({data}) => handleSession(data?.session)).catch(()=>{});
+      }
+      return client;
+    }
+    function loadLib(){
+      if (window.supabase){ ensureClient(); return; }
+      const s = document.createElement("script");
+      s.src = "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js";
+      s.onload = () => ensureClient();
+      s.onerror = () => tell("err","Couldn't load the login service. Check your internet and refresh the page.");
+      document.body.appendChild(s);
+    }
+
     $("send-btn").addEventListener("click", async () => {
       clearTell();
       const email = $("email").value.trim().toLowerCase();
-      if (!email) { tell("err", "Enter your email to continue."); return; }
-      if (!ALLOWED_EMAILS.includes(email)) { tell("err", "This app is private. That email isn't on the list."); return; }
-      if (!configured) { tell("err", "App not configured yet."); return; }
+      if (!email){ tell("err","Enter your email to continue."); return; }
+      if (!ALLOWED_EMAILS.includes(email)){ tell("err","This app is private. That email isn't on the list."); return; }
+      const c = ensureClient();
+      if (!c){ tell("info","Login service is still loading — give it a few seconds and tap again."); loadLib(); return; }
       $("send-btn").disabled = true; $("send-btn").textContent = "Sending…";
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false, emailRedirectTo: window.location.href },
-      });
+      try {
+        const { error } = await c.auth.signInWithOtp({ email, options:{ shouldCreateUser:false, emailRedirectTo: window.location.href } });
+        if (error){ tell("err", "Error: " + error.message); }
+        else { $("sent-to").textContent = email; show("sent"); }
+      } catch(e){ tell("err","Something went wrong: " + (e.message || e)); }
       $("send-btn").disabled = false; $("send-btn").textContent = "Send my login link";
-      if (error) {
-        const m = (error.message || "").toLowerCase();
-        if (m.includes("not allowed") || m.includes("signups") || m.includes("found"))
-          tell("err", "That email isn't set up yet. Ask the owner to invite it in Supabase.");
-        else tell("err", error.message);
-        return;
-      }
-      $("sent-to").textContent = email; show("sent");
     });
-    $("email").addEventListener("keydown", (e) => { if (e.key === "Enter") $("send-btn").click(); });
-    $("back-btn").addEventListener("click", () => { clearTell(); show("login"); });
-    $("signout-btn").addEventListener("click", async () => { if (supabase) await supabase.auth.signOut(); show("login"); });
+    $("email").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("send-btn").click(); });
+    $("back-btn").addEventListener("click",()=>{ clearTell(); show("login"); });
+    $("signout-btn").addEventListener("click", async ()=>{ const c=ensureClient(); if(c) await c.auth.signOut(); show("login"); });
+
+    ensureClient();
+    if (!client) loadLib();
   </script>
 </body>
 </html>
