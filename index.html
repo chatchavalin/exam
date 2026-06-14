@@ -643,6 +643,7 @@
           <button class="btn sm" onclick="gotoPage(1)">▶</button>
           <span style="flex:1"></span>
           <button class="btn sm" onclick="addLineMid()">＋ Add line</button>
+          <button class="btn sm" onclick="ocrAssist()">OCR assist</button>
           <button class="btn sm" onclick="reproposePage()">Re-draft</button>
         </div>
         <div id="ii-editor" style="position:relative;width:100%;user-select:none;touch-action:none;border:1px solid var(--line);border-radius:8px;overflow:hidden"></div>
@@ -736,6 +737,32 @@
   }
   function addLineAt(yDisp){ const sc=dispScale(); let ys=Math.round(yDisp/sc); ys=snapY(curPage,ys); (linesByPage[curPage]=linesByPage[curPage]||[]).push(ys); linesByPage[curPage].sort((a,b)=>a-b); renderCutLines(); }
   function addLineMid(){ const c=imgPages[curPage].canvas; addLineAt((c.height/2)*dispScale()); }
+  async function ocrAssist(){
+    const stat=$("ii-stat"); const set=t=>{ if(stat) stat.textContent=t; };
+    try{
+      set("Loading OCR (first run downloads a few MB)…");
+      const T=await ensureTesseract();
+      const c=imgPages[curPage].canvas; const W=c.width, H=c.height;
+      set(`Reading page ${curPage+1}… (a few seconds)`);
+      const worker=await T.createWorker("tha+eng");
+      let data;
+      try{ ({data}=await worker.recognize(c,{},{blocks:true})); }
+      catch(_){ ({data}=await worker.recognize(c)); }
+      await worker.terminate();
+      let words=[];
+      if(data && data.words && data.words.length) words=data.words;
+      else if(data && data.blocks) data.blocks.forEach(bl=>(bl.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(ln=>(ln.words||[]).forEach(w=>words.push(w)))));
+      const nums=[];
+      words.forEach(w=>{ const t=(w.text||"").trim(); const b=w.bbox||{}; const conf=w.confidence||0; const h=(b.y1-b.y0)||0;
+        if(/^\d{1,3}[.\)]?$/.test(t) && b.x0 < W*0.18 && conf>30 && h>8) nums.push(b.y0); });
+      nums.sort((a,b)=>a-b);
+      const merged=[]; nums.forEach(y=>{ if(!merged.length || y-merged[merged.length-1] > H*0.02) merged.push(y); });
+      if(!merged.length){ set("OCR couldn't find clear question numbers on this page — add lines by tapping."); return; }
+      linesByPage[curPage]=merged.map(y=>snapY(curPage, Math.max(0,Math.round(y-6)))).filter(y=>y>4 && y<H-4).sort((a,b)=>a-b);
+      renderCutLines();
+      set(`OCR placed ${linesByPage[curPage].length} line(s) on page ${curPage+1}. Fix any it missed, then continue.`);
+    }catch(e){ set("OCR failed: "+(e.message||e)); }
+  }
   function gotoPage(d){ const n=imgPages.length; curPage=Math.max(0,Math.min(n-1,curPage+d)); showEditorPage(); }
   function reproposePage(){ linesByPage[curPage]=proposeLines(curPage); renderCutLines(); }
   function buildFromLines(){
