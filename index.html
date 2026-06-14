@@ -184,8 +184,8 @@
     if(client) return client;
     if(window.supabase && window.supabase.createClient){
       client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      client.auth.onAuthStateChange((_e,s)=>onSession(s));
-      client.auth.getSession().then(({data})=>onSession(data?.session)).catch(()=>{});
+      client.auth.onAuthStateChange((_e,s)=>{ setTimeout(()=>onSession(s),0); });
+      client.auth.getSession().then(({data})=>setTimeout(()=>onSession(data?.session),0)).catch(()=>{});
     }
     return client;
   }
@@ -197,7 +197,10 @@
   }
   async function onSession(session){
     const email = session?.user?.email?.toLowerCase();
-    if(email && ALLOWED.includes(email)){ me = session.user; await afterLogin(); }
+    if(email && ALLOWED.includes(email)){
+      if(me && me.id===session.user.id && $("app").style.display==="block") return;
+      me = session.user; await afterLogin();
+    }
     else if(email && client){ client.auth.signOut(); }
   }
 
