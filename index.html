@@ -606,12 +606,11 @@
       <div class="tile"><div class="themebtns" id="se-themes"></div></div>
       <div class="sectiontitle">Parent reports (Telegram)</div>
       <div class="tile">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Get a Telegram message with each quiz result. Needs a quick one-time setup — see the note I left you.</div>
-        <div class="field"><label>Bot token (shared by the family)</label><input id="tg-token" placeholder="123456:ABC-..." value="${esc(appConfig.telegram_token||"")}"></div>
-        <div class="field"><label>This account's chat ID</label><input id="tg-chat" placeholder="e.g. 123456789" value="${esc(profile.tg_chat_id||"")}"></div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px"><input type="checkbox" id="tg-on" ${profile.tg_enabled!==false?"checked":""} style="width:auto"> Send my quiz results</label>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">After each quiz, results are sent to every chat ID below — add one line per parent. Kids need no setup.</div>
+        <div class="field"><label>Bot token (shared)</label><input id="tg-token" placeholder="123456:ABC-..." value="${esc(appConfig.telegram_token||"")}"></div>
+        <div class="field"><label>Send to chat IDs (one per line)</label><textarea id="tg-chats" placeholder="123456789&#10;987654321" style="min-height:78px">${esc(appConfig.report_chat_ids||profile.tg_chat_id||"")}</textarea></div>
         <button class="btn primary sm" onclick="saveTelegram()">Save</button>
-        <button class="btn sm" onclick="tgTest()">Send test</button>
+        <button class="btn sm" onclick="tgTest()">Send test to all</button>
         <div id="tg-msg" class="msg hidden"></div>
       </div>
       <div class="sectiontitle">Backup</div>
@@ -663,14 +662,15 @@
 
   /* ---------- TELEGRAM ---------- */
   function tgmsg(k,t){ const m=$("tg-msg"); if(!m)return; m.className="msg "+(k||""); m.textContent=t; m.classList.remove("hidden"); }
+  function tgChats(){ return (appConfig.report_chat_ids||"").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean); }
   async function saveTelegram(){
-    const token=$("tg-token").value.trim(), chat=$("tg-chat").value.trim(), on=$("tg-on").checked;
+    const token=$("tg-token").value.trim();
+    const chats=$("tg-chats").value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).join("\n");
     try{
-      const r1=await client.from("app_config").upsert({id:1, telegram_token:token||null},{onConflict:"id"}); if(r1.error) throw r1.error;
-      const r2=await client.from("profiles").update({tg_chat_id:chat||null, tg_enabled:on}).eq("id",me.id); if(r2.error) throw r2.error;
-      appConfig.telegram_token=token; profile.tg_chat_id=chat; profile.tg_enabled=on;
-      tgmsg("ok","Saved.");
-    }catch(e){ tgmsg("err","Couldn't save — did you run the Telegram setup step? ("+(e.message||e)+")"); }
+      const r=await client.from("app_config").upsert({id:1, telegram_token:token||null, report_chat_ids:chats||null},{onConflict:"id"}); if(r.error) throw r.error;
+      appConfig.telegram_token=token; appConfig.report_chat_ids=chats;
+      tgmsg("ok","Saved "+(chats?chats.split("\n").length:0)+" recipient(s).");
+    }catch(e){ tgmsg("err","Couldn't save — did you run the Telegram setup SQL? ("+(e.message||e)+")"); }
   }
   async function tgSend(chatId, text){
     if(!appConfig.telegram_token || !chatId) return {ok:false, error:"Not configured"};
@@ -680,19 +680,21 @@
     }catch(e){ return {ok:false, error:e.message}; }
   }
   async function tgTest(){
-    const token=$("tg-token").value.trim(), chat=$("tg-chat").value.trim();
-    if(!token||!chat){ tgmsg("err","Enter bot token and chat ID first."); return; }
+    const token=$("tg-token").value.trim();
+    const chats=$("tg-chats").value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+    if(!token||!chats.length){ tgmsg("err","Enter the bot token and at least one chat ID first."); return; }
     appConfig.telegram_token=token; tgmsg("","Sending test…");
-    const r=await tgSend(chat, "✅ ExamForge test message — reports are working!");
-    tgmsg(r.ok?"ok":"err", r.ok?"Test sent! Check Telegram.":("Failed: "+(r.error||"unknown")));
+    let ok=0, fail=0, lastErr="";
+    for(const c of chats){ const r=await tgSend(c, "✅ ExamForge test — reports are working!"); if(r.ok) ok++; else { fail++; lastErr=r.error||""; } }
+    tgmsg(fail?"err":"ok", "Sent to "+ok+"/"+chats.length+"."+(fail?(" Failed "+fail+" ("+lastErr+"). Make sure each parent has tapped Start on the bot."):""));
   }
   async function tgSendReport(mode, result){
-    if(profile.tg_enabled===false || !profile.tg_chat_id || !appConfig.telegram_token) return;
+    const chats=tgChats(); if(!appConfig.telegram_token || !chats.length) return;
     const pct=Math.round(result.correct/result.total*100); const bySub={};
     result.items.forEach(it=>{ const s=subjectById(it.q.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(isCorrect(it.q,it.choices,it.a))bySub[n].c++; });
     const lines=Object.entries(bySub).map(([n,d])=>"• "+esc(n)+": "+d.c+"/"+d.t).join("\n");
     const text="📚 <b>ExamForge</b>\n"+esc(profile.display_name||profile.email)+" finished a "+esc(mode)+" quiz.\nScore: <b>"+result.correct+"/"+result.total+" ("+pct+"%)</b>\n"+lines;
-    tgSend(profile.tg_chat_id, text);
+    for(const c of chats){ tgSend(c, text); }
   }
 
   /* ---------- BACKUP / RESTORE ---------- */
