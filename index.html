@@ -642,7 +642,8 @@
           <span id="ii-pagelbl" style="font-size:12px;color:var(--muted)"></span>
           <button class="btn sm" onclick="gotoPage(1)">▶</button>
           <span style="flex:1"></span>
-          <button class="btn sm" onclick="reproposePage()">Re-draft lines</button>
+          <button class="btn sm" onclick="addLineMid()">＋ Add line</button>
+          <button class="btn sm" onclick="reproposePage()">Re-draft</button>
         </div>
         <div id="ii-editor" style="position:relative;width:100%;user-select:none;touch-action:none;border:1px solid var(--line);border-radius:8px;overflow:hidden"></div>
         <button class="btn primary" style="width:100%;margin-top:10px" onclick="buildFromLines()">Review &amp; set answers →</button>
@@ -713,13 +714,28 @@
       x.onclick=(ev)=>{ ev.stopPropagation(); linesByPage[curPage].splice(idx,1); renderCutLines(); };
       const startDrag=(ev)=>{ ev.preventDefault(); ev.stopPropagation(); iiDragging=true;
         const move=(m)=>{ const r=ed.getBoundingClientRect(); const cy=(m.touches?m.touches[0].clientY:m.clientY); const yd2=Math.max(0,Math.min(ed.clientHeight, cy-r.top)); ln.style.top=yd2+"px"; linesByPage[curPage][idx]=Math.round(yd2/sc); };
-        const end=()=>{ document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",end); linesByPage[curPage].sort((a,b)=>a-b); renderCutLines(); setTimeout(()=>{iiDragging=false;},50); };
+        const end=()=>{ document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",end); linesByPage[curPage][idx]=snapY(curPage, linesByPage[curPage][idx]); linesByPage[curPage].sort((a,b)=>a-b); renderCutLines(); setTimeout(()=>{iiDragging=false;},50); };
         document.addEventListener("pointermove",move); document.addEventListener("pointerup",end); };
       grip.addEventListener("pointerdown",startDrag);
       ln.appendChild(grip); ln.appendChild(x); ed.appendChild(ln);
     });
   }
-  function addLineAt(yDisp){ const sc=dispScale(); const ys=Math.round(yDisp/sc); (linesByPage[curPage]=linesByPage[curPage]||[]).push(ys); linesByPage[curPage].sort((a,b)=>a-b); renderCutLines(); }
+  function pageInkProfile(pi){
+    const pg=imgPages[pi]; if(pg._prof) return pg._prof; const c=pg.canvas;
+    const W=c.width,H=c.height; const aw=Math.min(160,W); const scale=aw/W; const ah=Math.max(1,Math.round(H*scale));
+    const ac=document.createElement("canvas"); ac.width=aw; ac.height=ah; ac.getContext("2d").drawImage(c,0,0,aw,ah);
+    const d=ac.getContext("2d").getImageData(0,0,aw,ah).data; const frac=new Float32Array(ah);
+    for(let y=0;y<ah;y++){ let dark=0; for(let x=0;x<aw;x++){ const i=(y*aw+x)*4; const lum=0.3*d[i]+0.59*d[i+1]+0.11*d[i+2]; if(lum<140&&d[i+3]>20)dark++; } frac[y]=dark/aw; }
+    pg._prof={frac,scale,ah}; return pg._prof;
+  }
+  function snapY(pi, ySrc){
+    const p=pageInkProfile(pi); const ay=Math.round(ySrc*p.scale); const win=Math.max(4,Math.round(p.ah*0.03));
+    let best=ay, bestv=Infinity;
+    for(let y=Math.max(0,ay-win); y<=Math.min(p.ah-1,ay+win); y++){ if(p.frac[y]<bestv){ bestv=p.frac[y]; best=y; } }
+    return Math.round(best/p.scale);
+  }
+  function addLineAt(yDisp){ const sc=dispScale(); let ys=Math.round(yDisp/sc); ys=snapY(curPage,ys); (linesByPage[curPage]=linesByPage[curPage]||[]).push(ys); linesByPage[curPage].sort((a,b)=>a-b); renderCutLines(); }
+  function addLineMid(){ const c=imgPages[curPage].canvas; addLineAt((c.height/2)*dispScale()); }
   function gotoPage(d){ const n=imgPages.length; curPage=Math.max(0,Math.min(n-1,curPage+d)); showEditorPage(); }
   function reproposePage(){ linesByPage[curPage]=proposeLines(curPage); renderCutLines(); }
   function buildFromLines(){
@@ -746,13 +762,19 @@
   function cropCanvas(pi,y0,y1){ const src=imgPages[pi].canvas; const h=Math.max(1,y1-y0); const c=document.createElement("canvas"); c.width=src.width; c.height=h; c.getContext("2d").drawImage(src,0,y0,src.width,h,0,0,src.width,h); return c; }
   function renderImgCands(){
     const box=$("ii-cands"); if(!box) return;
-    if(!imgCands.length){ box.innerHTML=`<div class="empty">No exercises detected — try a higher sensitivity.</div>`; return; }
-    const letters=["ก","ข","ค","ง","จ"];
-    box.innerHTML=imgCands.map((cd,i)=>{ const c=cropCanvas(cd.page,cd.y0,cd.y1); const tw=Math.min(c.width,300), th=Math.max(1,Math.round(c.height*(tw/c.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(c,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
-      return `<div class="tile"><img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--line)"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:var(--muted)">Answer:</span>${letters.map(L=>`<button class="btn sm" style="${cd.ans===L?'background:var(--accent);color:#fff':''}" onclick="imgSetAns(${i},'${L}')">${L}</button>`).join("")}<button class="btn sm" onclick="imgMergeUp(${i})" ${i===0?'disabled':''}>⤒ Merge up</button><button class="btn sm danger" onclick="imgDiscard(${i})">✕</button></div></div>`;
+    if(!imgCands.length){ box.innerHTML=`<div class="empty">No crops — go back and add some cut lines.</div>`; return; }
+    const letters=["ก","ข","ค","ง","จ","ฉ"];
+    box.innerHTML=imgCands.map((cd,i)=>{ const count=cd.count||4; const c=cropCanvas(cd.page,cd.y0,cd.y1); const tw=Math.min(c.width,300), th=Math.max(1,Math.round(c.height*(tw/c.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(c,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
+      const counts=[2,3,4,5,6].map(n=>`<button class="btn sm" style="${count===n?'background:var(--ink);color:var(--card)':''}" onclick="imgSetCount(${i},${n})">${n}</button>`).join("");
+      const ans=letters.slice(0,count).map(L=>`<button class="btn sm" style="${cd.ans===L?'background:var(--accent);color:#fff':''}" onclick="imgSetAns(${i},'${L}')">${L}</button>`).join("");
+      return `<div class="tile"><img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--line)">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:var(--muted)">Choices:</span>${counts}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-size:12px;color:var(--muted)">Correct:</span>${ans}</div>
+        <div style="display:flex;gap:6px;margin-top:8px"><button class="btn sm" onclick="imgMergeUp(${i})" ${i===0?'disabled':''}>⤒ Merge up</button><button class="btn sm danger" onclick="imgDiscard(${i})">✕ Drop</button></div></div>`;
     }).join("");
   }
   function imgSetAns(i,L){ imgCands[i].ans=L; renderImgCands(); }
+  function imgSetCount(i,n){ imgCands[i].count=n; const order=["ก","ข","ค","ง","จ","ฉ"]; if(imgCands[i].ans && order.indexOf(imgCands[i].ans)>=n) imgCands[i].ans=null; renderImgCands(); }
   function imgMergeUp(i){ if(i<=0) return; const a=imgCands[i-1], b=imgCands[i]; if(a.page===b.page){ a.y0=Math.min(a.y0,b.y0); a.y1=Math.max(a.y1,b.y1); } imgCands.splice(i,1); renderImgCands(); }
   function imgDiscard(i){ imgCands.splice(i,1); renderImgCands(); }
   function canvasToBlob(c){ return new Promise(res=>c.toBlob(res,"image/jpeg",0.85)); }
@@ -761,7 +783,7 @@
     const ready=imgCands.filter(c=>c.ans); const stat=$("ii-stat");
     if(!ready.length){ if(stat) stat.textContent="Tap the correct letter on at least one exercise first."; return; }
     $("ii-go").disabled=true; let added=0;
-    const labels=["ก","ข","ค","ง","จ"];
+    const labels=["ก","ข","ค","ง","จ","ฉ"];
     for(let k=0;k<ready.length;k++){ const cd=ready[k]; if(stat) stat.textContent=`Uploading ${k+1}/${ready.length}…`;
       try{
         const blob=await canvasToBlob(cropCanvas(cd.page,cd.y0,cd.y1)); if(!blob) continue;
@@ -770,7 +792,7 @@
         const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
         const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id }).select("id").single();
         if(error||!nq) throw (error||new Error("insert"));
-        const cnt=Math.max(4, labels.indexOf(cd.ans)+1);
+        const cnt=Math.max(2, Math.min(6, cd.count||4));
         await client.from("choices").insert(labels.slice(0,cnt).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:L===cd.ans,position:idx})));
         added++;
       }catch(e){}
