@@ -476,6 +476,7 @@
       <h3>Bulk import</h3>
       <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Paste many questions at once, then tap <b>Preview</b> to check and <b>Import</b>.</p>
       <div class="field"><label>Default subject (used if text has no [Subject])</label><select id="im-sub"><option value="">— choose —</option>${subsOpt}</select></div>
+      <div class="field"><label>Or load a PDF (we'll pull out the text)</label><input id="im-pdf" type="file" accept="application/pdf" onchange="handlePdf(event)"><div id="im-pdfstat" style="font-size:12px;color:var(--muted);margin-top:6px"></div></div>
       <div class="field"><label>Questions</label><textarea id="im-text" style="min-height:190px;font-family:monospace;font-size:13px" placeholder="Paste here…"></textarea></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="im-skip" checked style="width:auto"> Skip questions already in the bank</label>
       <details style="margin:10px 0"><summary style="font-size:13px;color:var(--accent)">Show format example</summary><pre style="white-space:pre-wrap;font-size:12px;background:var(--bg);padding:10px;border-radius:8px;margin-top:8px">${esc(sample)}</pre><div style="font-size:12px;color:var(--muted)"><b>[Subject] Name</b> / <b>[Grade] P6</b> set the current subject &amp; grade. <b>Q:</b> starts a multiple-choice question; each choice line starts with a letter and bracket like <b>A)</b>, and the correct one(s) get a <b>*</b> in front (mark several for select-all). <b>E:</b> adds an explanation. For written questions use <b>W:</b> then <b>ANSWER:</b>. Separate questions with a blank line.</div></details>
@@ -548,6 +549,78 @@
     }
     msg.className="msg ok"; msg.textContent=`Imported ${added} question(s)`+(skipped?`, skipped ${skipped} duplicate(s)`:"")+".";
     $("im-go").disabled=false; loadQ();
+  }
+
+  /* ---------- PDF IMPORT ---------- */
+  let _pdfjs=null, _tess=null;
+  function ensurePdfLib(){
+    return new Promise((res,rej)=>{
+      if(_pdfjs) return res(_pdfjs);
+      const s=document.createElement("script");
+      s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      s.onload=()=>{ const lib=window.pdfjsLib; if(!lib){ rej(new Error("PDF reader missing")); return; } lib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; _pdfjs=lib; res(lib); };
+      s.onerror=()=>rej(new Error("Couldn't load the PDF reader"));
+      document.body.appendChild(s);
+    });
+  }
+  function ensureTesseract(){
+    return new Promise((res,rej)=>{
+      if(_tess) return res(_tess);
+      const s=document.createElement("script");
+      s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      s.onload=()=>{ if(!window.Tesseract){ rej(new Error("OCR missing")); return; } _tess=window.Tesseract; res(window.Tesseract); };
+      s.onerror=()=>rej(new Error("Couldn't load the OCR engine"));
+      document.body.appendChild(s);
+    });
+  }
+  function pdfToFormat(text){
+    text=(text||"").replace(/\r/g,"");
+    text=text.replace(/\s+(?=\d{1,3}[\.\)]\s)/g,"\n");
+    text=text.replace(/\s+(?=(?:[ก-ง]|[A-Da-d])[\.\)]\s)/g,"\n");
+    const rawlines=text.split("\n").map(s=>s.trim()).filter(Boolean);
+    const out=[]; let started=false; let curChoices=0;
+    const qStart=/^(?:\d{1,3}|[๐-๙]{1,3})[\.\)]\s*(.*)$/;
+    const chChoice=/^\(?([ก-ฮA-Da-d])[\.\)]\s*(.+)$/;
+    const letters=["A","B","C","D","E","F"];
+    for(const line of rawlines){
+      let m;
+      if(m=line.match(qStart)){ out.push(""); out.push("Q: "+(m[1]||"").trim()); started=true; curChoices=0; continue; }
+      if(started && (m=line.match(chChoice))){ out.push(letters[curChoices]+") "+m[2].trim()); curChoices++; continue; }
+      if(started && out.length){ out[out.length-1]=out[out.length-1]+" "+line; }
+    }
+    return out.join("\n").trim();
+  }
+  async function handlePdf(e){
+    const file=e.target.files[0]; if(!file) return;
+    const stat=$("im-pdfstat"); const setS=(t)=>{ if(stat) stat.textContent=t; };
+    try{
+      setS("Loading PDF reader…");
+      const pdfjs=await ensurePdfLib();
+      const buf=await file.arrayBuffer();
+      setS("Opening PDF…");
+      const pdf=await pdfjs.getDocument({data:buf}).promise;
+      const maxPages=Math.min(pdf.numPages,30); let out=""; let ocrUsed=false;
+      for(let p=1;p<=maxPages;p++){
+        setS(`Reading page ${p} of ${maxPages}…`);
+        const page=await pdf.getPage(p);
+        const tc=await page.getTextContent();
+        let txt=tc.items.map(i=>i.str+(i.hasEOL?"\n":" ")).join("");
+        if(txt.trim().length<15){
+          setS(`Page ${p}: looks scanned — running OCR (this is slow)…`);
+          const tess=await ensureTesseract();
+          const viewport=page.getViewport({scale:2});
+          const canvas=document.createElement("canvas"); canvas.width=viewport.width; canvas.height=viewport.height;
+          await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+          const r=await tess.recognize(canvas,"tha+eng");
+          txt=(r&&r.data&&r.data.text)||""; ocrUsed=true;
+        }
+        out+="\n"+txt;
+      }
+      setS("Turning it into questions…");
+      $("im-text").value=pdfToFormat(out);
+      setS(`Done — used ${maxPages} of ${pdf.numPages} page(s)${ocrUsed?", OCR used (check carefully)":""}. Review below, add * to the correct choice(s), then Import.`);
+      previewImport();
+    }catch(err){ setS("PDF failed: "+(err.message||err)); }
   }
 
   /* ---------- SUBJECTS ---------- */
