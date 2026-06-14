@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,33 +8,292 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --green:#1fbf75; --green-deep:#0f9d63; --purple:#7c4dff; --purple-deep:#5b2ed6;
-    --ink:#1a1730; --muted:#6b6685; --bg:#f7f6fb; --card:#fff; --line:#e9e6f2; --danger:#d8456b;
-    --radius:18px; --shadow:0 18px 50px -20px rgba(46,30,120,.35);
-    --font-display:"Space Grotesk",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif;
+  :root{
+    --accent:#7c4dff; --accent2:#1fbf75;
+    --ink:#1a1730; --muted:#6b6685; --bg:#f4f3fa; --card:#ffffff; --line:#e7e4f1;
+    --danger:#d8456b; --ok:#0f9d63; --warn:#e08a1e;
+    --radius:16px; --shadow:0 14px 40px -22px rgba(46,30,120,.4);
+    --fd:"Space Grotesk",system-ui,sans-serif; --fb:"Inter",system-ui,sans-serif;
   }
-  @media (prefers-color-scheme: dark){
-    :root{ --ink:#f2f0ff; --muted:#a39fc2; --bg:#100d1f; --card:#1a1730; --line:#2b2748; --shadow:0 18px 50px -20px rgba(0,0,0,.6); }
-  }
+  [data-theme="dark"]{ --ink:#f2f0ff; --muted:#a39fc2; --bg:#100d1f; --card:#1a1730; --line:#2b2748; --shadow:0 14px 40px -22px rgba(0,0,0,.7); }
+  [data-theme="green"]{ --accent:#0f9d63; --accent2:#34d399; --bg:#eef9f3; --card:#fff; --ink:#0f2a1f; --muted:#5a7a6c; --line:#d3ebdf; }
+  [data-theme="purple"]{ --accent:#6d28d9; --accent2:#a78bfa; --bg:#f3effd; --card:#fff; --ink:#241546; --muted:#6f5f93; --line:#e3d9f7; }
   *{box-sizing:border-box;} html,body{height:100%;}
-  body{ margin:0; font-family:var(--font-body); color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; display:grid; place-items:center; padding:24px; position:relative; overflow:hidden; }
-  .field{ position:fixed; inset:0; z-index:0; overflow:hidden; }
-  .field::before,.field::after{ content:""; position:absolute; width:60vmax; height:60vmax; border-radius:50%; filter:blur(70px); opacity:.55; }
-  .field::before{ background:radial-gradient(circle at center,var(--green),transparent 60%); top:-18vmax; left:-12vmax; animation:drift1 18s ease-in-out infinite alternate; }
-  .field::after{ background:radial-gradient(circle at center,var(--purple),transparent 60%); bottom:-20vmax; right:-14vmax; animation:drift2 22s ease-in-out infinite alternate; }
-  @keyframes drift1{ to{ transform:translate(8vmax,6vmax) scale(1.1);} }
-  @keyframes drift2{ to{ transform:translate(-7vmax,-5vmax) scale(1.15);} }
-  @media (prefers-reduced-motion: reduce){ .field::before,.field::after{ animation:none; } }
-  .card{ position:relative; z-index:1; width:100%; max-width:420px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:38px 34px 30px; }
-  .brand{ display:flex; align-items:center; gap:11px; margin-bottom:26px; }
-  .spark{ width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--green),var(--purple)); display:grid; place-items:center; flex:none; box-shadow:0 6px 18px -6px var(--purple); }
-  .spark svg{ width:19px; height:19px; }
-  .wordmark{ font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.02em; }
-  h1{ font-family:var(--font-display); font-weight:600; font-size:26px; line-height:1.2; margin:0 0 8px; letter-spacing:-.02em; }
-  .sub{ color:var(--muted); font-size:14.5px; line-height:1.5; margin:0 0 24px; }
-  label{ display:block; font-size:13px; font-weight:600; margin:0 0 8px; }
-  input[type="email"]{ width:100%; font-family:var(--font-body); font-size:16px; color:var(--ink); padding:13px 15px; border:1.5px solid var(--line); border-radius:12px; background:transparent; transition:border-color .15s,box-shadow .15s; }
+  body{ margin:0; font-family:var(--fb); color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
+  h1,h2,h3{ font-family:var(--fd); letter-spacing:-.02em; margin:0; }
+  button{ font-family:var(--fb); cursor:pointer; }
+  input,select,textarea{ font-family:var(--fb); font-size:16px; color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:10px; padding:11px 13px; width:100%; }
+  input:focus,select,textarea:focus{ outline:none; border-color:var(--accent); }
+  textarea{ resize:vertical; min-height:64px; }
+  label{ display:block; font-size:12.5px; font-weight:600; margin:0 0 6px; color:var(--muted); }
+  .field{ margin-bottom:14px; }
+  .row{ display:flex; gap:10px; } .row>*{ flex:1; }
+  .btn{ border:none; border-radius:11px; padding:12px 16px; font-weight:600; font-size:14.5px; background:var(--line); color:var(--ink); }
+  .btn.primary{ color:#fff; background:linear-gradient(135deg,var(--accent),var(--accent2)); font-family:var(--fd); }
+  .btn.ghost{ background:none; color:var(--accent); }
+  .btn.danger{ background:rgba(216,69,107,.1); color:var(--danger); }
+  .btn.sm{ padding:8px 12px; font-size:13px; border-radius:9px; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .msg{ font-size:13px; border-radius:10px; padding:10px 13px; margin-top:12px; }
+  .msg.err{ background:rgba(216,69,107,.1); color:var(--danger); }
+  .msg.ok{ background:rgba(31,191,117,.14); color:var(--ok); }
+  .hidden{ display:none !important; }
+  .center{ min-height:100%; display:grid; place-items:center; padding:22px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:30px 26px; width:100%; max-width:430px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .spark{ width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:grid; place-items:center; }
+  .spark svg{ width:18px; height:18px; } .wm{ font-family:var(--fd); font-weight:700; font-size:19px; }
+  #app{ display:none; min-height:100%; padding:0 0 84px; max-width:760px; margin:0 auto; }
+  .top{ position:sticky; top:0; z-index:5; background:var(--bg); display:flex; align-items:center; justify-content:space-between; padding:16px 18px 12px; }
+  .top h2{ font-size:21px; }
+  .av{ width:38px; height:38px; border-radius:50%; object-fit:cover; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; display:grid; place-items:center; font-family:var(--fd); font-weight:700; font-size:15px; border:none; }
+  .wrap{ padding:4px 18px; }
+  .nav{ position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--line); display:flex; justify-content:space-around; padding:8px 4px calc(8px + env(safe-area-inset-bottom)); z-index:6; }
+  .nav button{ background:none; border:none; color:var(--muted); font-size:10.5px; display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; padding:4px; font-weight:600; }
+  .nav button.on{ color:var(--accent); }
+  .nav svg{ width:22px; height:22px; }
+  .tile{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .stat{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
+  .stat .n{ font-family:var(--fd); font-size:28px; font-weight:700; }
+  .stat .l{ font-size:12.5px; color:var(--muted); }
+  .pcard{ display:flex; align-items:center; gap:14px; }
+  .pcard .av{ width:58px; height:58px; font-size:22px; }
+  .chip{ display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; background:var(--line); color:var(--muted); }
+  .listitem{ display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .listitem:last-child{ border-bottom:none; }
+  .listitem .grow{ flex:1; min-width:0; }
+  .listitem .grow .t{ font-weight:600; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .listitem .grow .s{ font-size:12px; color:var(--muted); }
+  .dot{ width:12px; height:12px; border-radius:4px; flex:none; }
+  .sectiontitle{ font-size:13px; font-weight:700; color:var(--muted); margin:18px 2px 8px; text-transform:uppercase; letter-spacing:.04em; }
+  .empty{ text-align:center; color:var(--muted); padding:30px 16px; font-size:14px; }
+  .themebtns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .themebtns button{ border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px; padding:8px 14px; font-weight:600; font-size:13px; }
+  .themebtns button.on{ border-color:var(--accent); color:var(--accent); }
+  .modal{ position:fixed; inset:0; background:rgba(20,12,40,.5); display:grid; place-items:end center; z-index:30; }
+  .sheet{ background:var(--card); width:100%; max-width:560px; max-height:92vh; overflow:auto; border-radius:20px 20px 0 0; padding:22px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet h3{ font-size:19px; margin-bottom:4px; }
+  .sheet .close{ float:right; background:none; border:none; font-size:22px; color:var(--muted); }
+  .choicerow{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .choicerow .lab{ width:26px; height:26px; border-radius:7px; background:var(--line); display:grid; place-items:center; font-weight:700; font-size:13px; flex:none; }
+  .choicerow input[type=text]{ flex:1; }
+  .choicerow .ck{ width:24px; height:24px; flex:none; }
+  .seg{ display:flex; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; }
+  .seg button{ flex:1; background:var(--card); border:none; padding:10px; font-weight:600; font-size:13.5px; color:var(--muted); }
+  .seg button.on{ background:var(--accent); color:#fff; }
+</style>
+</head>
+<body>
+  <div id="screen-auth" class="center">
+    <div class="card">
+      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
+      <h1 style="font-size:24px;margin-bottom:6px">Sign in</h1>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Enter your email for a one-tap login link.</p>
+      <div class="field"><input id="email" type="email" placeholder="you@gmail.com" /></div>
+      <button class="btn primary" id="send-btn" style="width:100%">Send my login link</button>
+      <div id="auth-msg" class="msg hidden"></div>
+    </div>
+  </div>
+  <div id="screen-sent" class="center hidden">
+    <div class="card">
+      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
+      <h1 style="font-size:24px;margin-bottom:6px">Check your email</h1>
+      <p style="color:var(--muted);font-size:14px">Link sent to <b id="sent-to"></b>. Open it on this device.</p>
+      <button class="btn ghost" id="back-btn" style="margin-top:8px">Use a different email</button>
+    </div>
+  </div>
+  <div id="screen-setup" class="center hidden">
+    <div class="card">
+      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
+      <h1 style="font-size:23px;margin-bottom:4px">Set up your profile</h1>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Just a couple of things to personalise your space.</p>
+      <div class="field"><label>Your name</label><input id="su-name" placeholder="e.g. Ben" /></div>
+      <div class="field"><label>Grade</label>
+        <select id="su-grade"><option value="">Select…</option><option>P6</option><option>M2</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Theme</label><div class="themebtns" id="su-themes"></div></div>
+      <button class="btn primary" id="su-save" style="width:100%;margin-top:6px">Save & continue</button>
+      <div id="su-msg" class="msg hidden"></div>
+    </div>
+  </div>
+  <div id="app">
+    <div class="top">
+      <h2 id="title">Dashboard</h2>
+      <button class="av" id="top-av" onclick="go('settings')"></button>
+    </div>
+    <div class="wrap" id="view"></div>
+    <nav class="nav" id="nav"></nav>
+  </div>
+  <div id="modal-root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+  const SUPABASE_URL = "https://ziuhrptqgscrhpxytjqc.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5dy99I-YB_7l4qjGqOwtkQ_iJ4_RDhR";
+  const ALLOWED = ["chatchavalin@gmail.com","numooynumooy@gmail.com","mansikarn.d@gmail.com","praritsak@gmail.com"];
+  const THEMES = ["light","dark","green","purple"];
+  const $ = (id)=>document.getElementById(id);
+  const el = (sel)=>document.querySelector(sel);
+  let client=null, me=null, profile=null;
+  const state = { subjects:[], subtopics:[], route:"dashboard" };
+  function ensureClient(){
+    if(client) return client;
+    if(window.supabase && window.supabase.createClient){
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      client.auth.onAuthStateChange((_e,s)=>onSession(s));
+      client.auth.getSession().then(({data})=>onSession(data?.session)).catch(()=>{});
+    }
+    return client;
+  }
+  function loadLib(){
+    if(window.supabase){ ensureClient(); return; }
+    const s=document.createElement("script");
+    s.src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js";
+    s.onload=()=>ensureClient(); document.body.appendChild(s);
+  }
+  async function onSession(session){
+    const email = session?.user?.email?.toLowerCase();
+    if(email && ALLOWED.includes(email)){ me = session.user; await afterLogin(); }
+    else if(email && client){ client.auth.signOut(); }
+  }
+  const authMsg=(k,t)=>{ const m=$("auth-msg"); m.className="msg "+k; m.textContent=t; m.classList.remove("hidden"); };
+  $("send-btn").addEventListener("click", async ()=>{
+    $("auth-msg").classList.add("hidden");
+    const email=$("email").value.trim().toLowerCase();
+    if(!email){ authMsg("err","Enter your email."); return; }
+    if(!ALLOWED.includes(email)){ authMsg("err","This app is private. That email isn't on the list."); return; }
+    const c=ensureClient(); if(!c){ authMsg("err","Still loading — try again in a moment."); loadLib(); return; }
+    $("send-btn").disabled=true; $("send-btn").textContent="Sending…";
+    try{
+      const {error}=await c.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:window.location.href}});
+      if(error) authMsg("err","Error: "+error.message);
+      else { $("sent-to").textContent=email; showScreen("sent"); }
+    }catch(e){ authMsg("err","Something went wrong: "+(e.message||e)); }
+    $("send-btn").disabled=false; $("send-btn").textContent="Send my login link";
+  });
+  $("email").addEventListener("keydown",e=>{ if(e.key==="Enter") $("send-btn").click(); });
+  $("back-btn").addEventListener("click",()=>showScreen("auth"));
+  function showScreen(name){ ["auth","sent","setup"].forEach(s=>$("screen-"+s).classList.toggle("hidden", s!==name)); $("app").style.display="none"; }
+  function hideAllScreens(){ ["auth","sent","setup"].forEach(s=>$("screen-"+s).classList.add("hidden")); }
+  async function afterLogin(){
+    await client.from("profiles").upsert({ id: me.id, email: me.email }, { onConflict:"id" });
+    const { data } = await client.from("profiles").select("*").eq("id", me.id).single();
+    profile = data || { id:me.id, email:me.email, theme:"light" };
+    applyTheme(profile.theme || "light");
+    if(!profile.display_name || !profile.grade){ openSetup(); return; }
+    await loadBank(); enterApp();
+  }
+  function applyTheme(t){ document.documentElement.setAttribute("data-theme", THEMES.includes(t)?t:"light"); }
+  function openSetup(){
+    hideAllScreens(); $("app").style.display="none"; $("screen-setup").classList.remove("hidden");
+    $("su-name").value = profile.display_name||""; $("su-grade").value = profile.grade||"";
+    let chosen = profile.theme||"light";
+    const box=$("su-themes"); box.innerHTML="";
+    THEMES.forEach(t=>{ const b=document.createElement("button"); b.textContent=cap(t); b.className=t===chosen?"on":"";
+      b.onclick=()=>{ chosen=t; applyTheme(t); [...box.children].forEach(c=>c.className=""); b.className="on"; }; box.appendChild(b); });
+    $("su-save").onclick = async ()=>{
+      const name=$("su-name").value.trim(), grade=$("su-grade").value;
+      if(!name||!grade){ const m=$("su-msg"); m.className="msg err"; m.textContent="Please fill name and grade."; m.classList.remove("hidden"); return; }
+      await client.from("profiles").update({ display_name:name, grade, theme:chosen }).eq("id", me.id);
+      profile.display_name=name; profile.grade=grade; profile.theme=chosen;
+      await loadBank(); enterApp();
+    };
+  }
+  async function loadBank(){
+    const [{data:subs},{data:subtopics}] = await Promise.all([
+      client.from("subjects").select("*").order("name"),
+      client.from("subtopics").select("*").order("name")
+    ]);
+    state.subjects = subs||[]; state.subtopics = subtopics||[];
+  }
+  const subtopicsOf = (sid)=> state.subtopics.filter(s=>s.subject_id===sid);
+  const subjectById = (id)=> state.subjects.find(s=>s.id===id);
+  const NAV = [
+    ["dashboard","Home", '<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'],
+    ["bank","Bank", '<path d="M4 7h16M4 12h16M4 17h10"/>'],
+    ["quiz","Quiz", '<path d="M9 11l3 3 8-8M21 12a9 9 0 11-6-8.5"/>'],
+    ["stats","Stats", '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+    ["settings","You", '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'],
+  ];
+  function enterApp(){ hideAllScreens(); $("app").style.display="block"; buildNav(); go(state.route||"dashboard"); }
+  function buildNav(){
+    $("nav").innerHTML = NAV.map(([k,l,p])=>`<button data-k="${k}" onclick="go('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>${l}</button>`).join("");
+  }
+  function go(route){
+    state.route=route;
+    [...$("nav").children].forEach(b=>b.classList.toggle("on", b.dataset.k===route));
+    $("title").textContent = ({dashboard:"Dashboard",bank:"Question bank",quiz:"Quiz",stats:"Stats",settings:"You"})[route];
+    $("top-av").innerHTML = avatarInner();
+    const v=$("view");
+    try{
+      if(route==="dashboard") viewDashboard(v);
+      else if(route==="bank") viewBank(v);
+      else if(route==="settings") viewSettings(v);
+      else if(route==="quiz"||route==="stats") v.innerHTML = `<div class="empty">✨ This arrives in the next update.<br>Build your question bank first!</div>`;
+    }catch(e){ v.innerHTML = `<div class="msg err">Error: ${e.message}</div>`; }
+  }
+  function avatarInner(){ return profile.avatar_url ? `<img class="av" src="${profile.avatar_url}" alt="">` : (initials()); }
+  function initials(){ const n=profile.display_name||profile.email||"?"; return n.trim().slice(0,1).toUpperCase(); }
+  async function viewDashboard(v){
+    const qCount = await client.from("questions").select("id",{count:"exact",head:true});
+    const n = qCount.count||0;
+    v.innerHTML = `
+      <div class="tile pcard">
+        <div class="av">${profile.avatar_url?`<img class="av" src="${profile.avatar_url}">`:initials()}</div>
+        <div><div style="font-family:var(--fd);font-weight:700;font-size:19px">${esc(profile.display_name||"")}</div>
+        <span class="chip">${esc(profile.grade||"")}</span></div>
+      </div>
+      <div class="grid2">
+        <div class="stat"><div class="n">${n}</div><div class="l">Questions in bank</div></div>
+        <div class="stat"><div class="n">${state.subjects.length}</div><div class="l">Subjects</div></div>
+      </div>
+      <div class="sectiontitle">Get started</div>
+      <div class="tile">
+        <div style="font-weight:600;margin-bottom:4px">Build your question bank</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Add questions, then quizzes and stats unlock as you go.</div>
+        <button class="btn primary" onclick="go('bank')">Go to bank</button>
+      </div>`;
+  }
+  let bankFilter="";
+  async function viewBank(v){
+    v.innerHTML = `
+      <div class="row" style="margin:6px 0 12px">
+        <select id="bk-filter"><option value="">All subjects</option>${state.subjects.map(s=>`<option value="${s.id}" ${s.id===bankFilter?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
+        <button class="btn primary" style="flex:none" onclick="openQ()">+ Add</button>
+      </div>
+      <div style="margin-bottom:10px"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects & topics →</button></div>
+      <div id="qlist"><div class="empty">Loading…</div></div>`;
+    $("bk-filter").onchange = (e)=>{ bankFilter=e.target.value; loadQ(); };
+    loadQ();
+  }
+  function go2(name){ if(name==="subjects") viewSubjects($("view")); }
+  async function loadQ(){
+    let q = client.from("questions").select("*").order("created_at",{ascending:false}).limit(100);
+    if(bankFilter) q = q.eq("subject_id", bankFilter);
+    const { data } = await q;
+    const list=$("qlist");
+    if(!data || !data.length){ list.innerHTML = `<div class="empty">No questions yet. Tap <b>+ Add</b> to create your first.</div>`; return; }
+    list.innerHTML = data.map(qq=>{
+      const sub=subjectById(qq.subject_id);
+      return `<div class="listitem">
+        <div class="dot" style="background:${sub?sub.color:'#ccc'}"></div>
+        <div class="grow"><div class="t">${esc(qq.stem||"(no text)")}</div>
+        <div class="s">${sub?esc(sub.name):"—"} · ${qq.type==="written"?"Written":qq.answer_mode==="multi"?"Multi":"MCQ"}${qq.grade?" · "+esc(qq.grade):""}</div></div>
+        <button class="btn sm" onclick="openQ('${qq.id}')">Edit</button>
+      </div>`;
+    }).join("");
+  }
+  async function openQ(id){
+    let q = { type:"mcq", answer_mode:"single", grade:profile.grade||"", subject_id:state.subjects[0]?.id||"", choices:[{label:"ก"},{label:"ข"},{label:"ค"},{label:"ง"}] };
+    if(id){
+      const { data } = await client.from("questions").select("*").eq("id",id).single();
+      const { data:ch } = await client.from("choices").select("*").eq("question_id",id).order("position");
+      q = { ...data, choices: (ch&&ch.length?ch:[{label:"ก"},{label:"ข"},{label:"ค"},{label:"ง"}]) };
+    }
+    renderQModal(q, id);
+  }
+  function renderQModal(q, id){
+    const subsOpt = state.subjects.map(s=>`<option value="${s.id}" ${s.id===q.subject_id?"selected":""}>${esc(s.name)}</optio  input[type="email"]{ width:100%; font-family:var(--font-body); font-size:16px; color:var(--ink); padding:13px 15px; border:1.5px solid var(--line); border-radius:12px; background:transparent; transition:border-color .15s,box-shadow .15s; }
   input[type="email"]:focus{ outline:none; border-color:var(--purple); box-shadow:0 0 0 4px rgba(124,77,255,.15); }
   button.primary{ width:100%; margin-top:16px; cursor:pointer; font-family:var(--font-display); font-weight:600; font-size:15.5px; color:#fff; padding:14px 16px; border:none; border-radius:12px; background:linear-gradient(135deg,var(--green-deep),var(--purple-deep)); transition:transform .12s,filter .15s,opacity .15s; }
   button.primary:hover{ filter:brightness(1.07); } button.primary:active{ transform:translateY(1px); } button.primary:disabled{ opacity:.55; cursor:default; }
