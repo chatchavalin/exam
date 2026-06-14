@@ -350,7 +350,7 @@
         <select id="bk-filter"><option value="">All subjects</option>${state.subjects.map(s=>`<option value="${s.id}" ${s.id===bankFilter?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
         <button class="btn primary" style="flex:none" onclick="openQ()">+ Add</button>
       </div>
-      <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects &amp; topics →</button><button class="btn sm ghost" onclick="openImport()">Bulk import →</button></div>
+      <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects &amp; topics →</button><button class="btn sm ghost" onclick="openImport()">Bulk import →</button><button class="btn sm ghost" onclick="openImageImport()">Image import →</button></div>
       <div id="qlist"><div class="empty">Loading…</div></div>`;
     $("bk-filter").onchange = (e)=>{ bankFilter=e.target.value; loadQ(); };
     loadQ();
@@ -366,8 +366,8 @@
       const sub=subjectById(qq.subject_id);
       return `<div class="listitem">
         <div class="dot" style="background:${sub?sub.color:'#ccc'}"></div>
-        <div class="grow"><div class="t">${esc(qq.stem||"(no text)")}</div>
-        <div class="s">${sub?esc(sub.name):"—"} · ${qq.type==="written"?"Written":qq.answer_mode==="multi"?"Multi":"MCQ"}${qq.grade?" · "+esc(qq.grade):""}</div></div>
+        <div class="grow"><div class="t">${esc(qq.stem||(qq.image_url?"(image question)":"(no text)"))}</div>
+        <div class="s">${sub?esc(sub.name):"—"} · ${qq.type==="written"?"Written":qq.answer_mode==="multi"?"Multi":"MCQ"}${qq.image_url?" · 🖼":""}${qq.grade?" · "+esc(qq.grade):""}</div></div>
         <button class="btn sm" onclick="openQ('${qq.id}')">Edit</button>
       </div>`;
     }).join("");
@@ -621,6 +621,93 @@
       setS(`Done — used ${maxPages} of ${pdf.numPages} page(s)${ocrUsed?", OCR used (check carefully)":""}. Review below, add * to the correct choice(s), then Import.`);
       previewImport();
     }catch(err){ setS("PDF failed: "+(err.message||err)); }
+  }
+
+  /* ---------- IMAGE IMPORT (auto-crop) ---------- */
+  let imgPages=[], imgCands=[];
+  function openImageImport(){
+    imgPages=[]; imgCands=[];
+    const subsOpt=state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="sheet">
+      <button class="close" onclick="closeModal()">×</button>
+      <h3>Image import (auto-crop)</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Load a PDF or photo. I detect each exercise by the gaps and crop it into a picture. Review below, set the correct letter, then Import. Adjust the slider if the splits look wrong.</p>
+      <div class="row"><div class="field"><label>Subject</label><select id="ii-sub">${subsOpt}</select></div><div class="field"><label>Grade</label><select id="ii-grade"><option value="">—</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div></div>
+      <div class="field"><label>PDF or image</label><input id="ii-file" type="file" accept="image/*,application/pdf" onchange="handleImgFile(event)"></div>
+      <div class="field"><label>Split sensitivity (fewer ↔ more pieces)</label><input id="ii-sens" type="range" min="1" max="5" value="3" oninput="imgDetect()"></div>
+      <div id="ii-stat" style="font-size:12.5px;color:var(--muted);margin-bottom:8px"></div>
+      <div id="ii-cands"></div>
+      <button class="btn primary" id="ii-go" style="width:100%;margin-top:10px" onclick="runImageImport()">Import selected</button>
+    </div>`;
+    $("modal-root").appendChild(m);
+  }
+  async function handleImgFile(e){
+    const file=e.target.files[0]; if(!file) return;
+    const setS=t=>{ const s=$("ii-stat"); if(s)s.textContent=t; }; imgPages=[];
+    try{
+      if(file.type==="application/pdf"){
+        setS("Loading PDF…"); const pdfjs=await ensurePdfLib(); const buf=await file.arrayBuffer();
+        const pdf=await pdfjs.getDocument({data:buf}).promise; const mx=Math.min(pdf.numPages,15);
+        for(let p=1;p<=mx;p++){ setS(`Rendering page ${p}/${mx}…`); const page=await pdf.getPage(p); const vp=page.getViewport({scale:1.5}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise; imgPages.push(c); }
+      } else if(file.type.startsWith("image/")){
+        setS("Loading image…"); const url=URL.createObjectURL(file); const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error("bad image")); im.src=url; });
+        const c=document.createElement("canvas"); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext("2d").drawImage(img,0,0); imgPages.push(c); URL.revokeObjectURL(url);
+      } else { setS("Please choose an image or PDF."); return; }
+      imgDetect();
+    }catch(err){ setS("Couldn't read that file: "+(err.message||err)); }
+  }
+  function analyzePage(canvas, gapFrac){
+    const W=canvas.width, H=canvas.height; const aw=Math.min(160,W); const scale=aw/W; const ah=Math.max(1,Math.round(H*scale));
+    const ac=document.createElement("canvas"); ac.width=aw; ac.height=ah; ac.getContext("2d").drawImage(canvas,0,0,aw,ah);
+    const d=ac.getContext("2d").getImageData(0,0,aw,ah).data; const ink=new Array(ah).fill(false);
+    for(let y=0;y<ah;y++){ let dark=0; for(let x=0;x<aw;x++){ const i=(y*aw+x)*4; const lum=0.3*d[i]+0.59*d[i+1]+0.11*d[i+2]; if(lum<140 && d[i+3]>20) dark++; } ink[y]=(dark/aw)>0.012; }
+    const gapThresh=Math.max(4,Math.round(ah*gapFrac)); const segs=[]; let start=null,last=null,blank=0;
+    for(let y=0;y<ah;y++){ if(ink[y]){ if(start===null)start=y; last=y; blank=0; } else { blank++; if(start!==null&&blank>=gapThresh){ segs.push([start,last]); start=null; } } }
+    if(start!==null) segs.push([start,last]);
+    const minH=ah*0.02, pad=Math.round(ah*0.012);
+    return segs.filter(s=>(s[1]-s[0])>=minH).map(s=>[Math.max(0,Math.round((s[0]-pad)/scale)),Math.min(H,Math.round((s[1]+pad)/scale))]);
+  }
+  function imgDetect(){
+    if(!imgPages.length) return;
+    const sens=parseInt(($("ii-sens")||{}).value||"3",10); const map={1:0.07,2:0.045,3:0.03,4:0.02,5:0.013}; const gf=map[sens]||0.03;
+    imgCands=[]; imgPages.forEach((c,pi)=>{ analyzePage(c,gf).forEach(([y0,y1])=>imgCands.push({page:pi,y0,y1,ans:null})); });
+    const s=$("ii-stat"); if(s) s.textContent=`Found ${imgCands.length} exercise(s) across ${imgPages.length} page(s). Set the correct letter on each, then Import.`;
+    renderImgCands();
+  }
+  function cropCanvas(pi,y0,y1){ const src=imgPages[pi]; const h=Math.max(1,y1-y0); const c=document.createElement("canvas"); c.width=src.width; c.height=h; c.getContext("2d").drawImage(src,0,y0,src.width,h,0,0,src.width,h); return c; }
+  function renderImgCands(){
+    const box=$("ii-cands"); if(!box) return;
+    if(!imgCands.length){ box.innerHTML=`<div class="empty">No exercises detected — try a higher sensitivity.</div>`; return; }
+    const letters=["ก","ข","ค","ง","จ"];
+    box.innerHTML=imgCands.map((cd,i)=>{ const c=cropCanvas(cd.page,cd.y0,cd.y1); const tw=Math.min(c.width,300), th=Math.max(1,Math.round(c.height*(tw/c.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(c,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
+      return `<div class="tile"><img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--line)"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:var(--muted)">Answer:</span>${letters.map(L=>`<button class="btn sm" style="${cd.ans===L?'background:var(--accent);color:#fff':''}" onclick="imgSetAns(${i},'${L}')">${L}</button>`).join("")}<button class="btn sm" onclick="imgMergeUp(${i})" ${i===0?'disabled':''}>⤒ Merge up</button><button class="btn sm danger" onclick="imgDiscard(${i})">✕</button></div></div>`;
+    }).join("");
+  }
+  function imgSetAns(i,L){ imgCands[i].ans=L; renderImgCands(); }
+  function imgMergeUp(i){ if(i<=0) return; const a=imgCands[i-1], b=imgCands[i]; if(a.page===b.page){ a.y0=Math.min(a.y0,b.y0); a.y1=Math.max(a.y1,b.y1); } imgCands.splice(i,1); renderImgCands(); }
+  function imgDiscard(i){ imgCands.splice(i,1); renderImgCands(); }
+  function canvasToBlob(c){ return new Promise(res=>c.toBlob(res,"image/jpeg",0.85)); }
+  async function runImageImport(){
+    const sid=$("ii-sub").value||state.subjects[0]?.id||null; const grade=$("ii-grade").value||null;
+    const ready=imgCands.filter(c=>c.ans); const stat=$("ii-stat");
+    if(!ready.length){ if(stat) stat.textContent="Tap the correct letter on at least one exercise first."; return; }
+    $("ii-go").disabled=true; let added=0;
+    const labels=["ก","ข","ค","ง","จ"];
+    for(let k=0;k<ready.length;k++){ const cd=ready[k]; if(stat) stat.textContent=`Uploading ${k+1}/${ready.length}…`;
+      try{
+        const blob=await canvasToBlob(cropCanvas(cd.page,cd.y0,cd.y1)); if(!blob) continue;
+        const path=`${me.id}/${Date.now()}_${k}.jpg`;
+        const up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
+        const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
+        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id }).select("id").single();
+        if(error||!nq) throw (error||new Error("insert"));
+        const cnt=Math.max(4, labels.indexOf(cd.ans)+1);
+        await client.from("choices").insert(labels.slice(0,cnt).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:L===cd.ans,position:idx})));
+        added++;
+      }catch(e){}
+    }
+    if(stat) stat.textContent=`Imported ${added} image question(s).`; $("ii-go").disabled=false; loadQ();
   }
 
   /* ---------- SUBJECTS ---------- */
@@ -893,6 +980,7 @@
     const v=$("view"); const it=quiz.items[quiz.idx], q=it.q, a=quiz.answers[q.id]||{};
     let body="";
     if(q.passage) body+=`<div class="tile" style="font-size:13.5px;white-space:pre-wrap;background:rgba(124,77,255,.05)">${esc(q.passage)}</div>`;
+    if(q.image_url) body+=`<img src="${q.image_url}" style="max-width:100%;border-radius:10px;margin-bottom:10px" alt="">`;
     body+=`<div style="font-weight:600;font-size:16px;margin:6px 0 14px">${esc(q.stem)}</div>`;
     if(q.type==="written"){
       const revealed = a.submitted || quiz.mode==="study";
