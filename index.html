@@ -18,6 +18,7 @@
   [data-theme="dark"]{ --ink:#f2f0ff; --muted:#a39fc2; --bg:#100d1f; --card:#1a1730; --line:#2b2748; --shadow:0 14px 40px -22px rgba(0,0,0,.7); }
   [data-theme="green"]{ --accent:#0f9d63; --accent2:#34d399; --bg:#eef9f3; --card:#fff; --ink:#0f2a1f; --muted:#5a7a6c; --line:#d3ebdf; }
   [data-theme="purple"]{ --accent:#6d28d9; --accent2:#a78bfa; --bg:#f3effd; --card:#fff; --ink:#241546; --muted:#6f5f93; --line:#e3d9f7; }
+
   *{box-sizing:border-box;} html,body{height:100%;}
   body{ margin:0; font-family:var(--fb); color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
   h1,h2,h3{ font-family:var(--fd); letter-spacing:-.02em; margin:0; }
@@ -38,11 +39,15 @@
   .msg.err{ background:rgba(216,69,107,.1); color:var(--danger); }
   .msg.ok{ background:rgba(31,191,117,.14); color:var(--ok); }
   .hidden{ display:none !important; }
+
+  /* centered auth/setup */
   .center{ min-height:100%; display:grid; place-items:center; padding:22px; }
   .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:30px 26px; width:100%; max-width:430px; }
   .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
   .spark{ width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:grid; place-items:center; }
   .spark svg{ width:18px; height:18px; } .wm{ font-family:var(--fd); font-weight:700; font-size:19px; }
+
+  /* app shell */
   #app{ display:none; min-height:100%; padding:0 0 84px; max-width:760px; margin:0 auto; }
   .top{ position:sticky; top:0; z-index:5; background:var(--bg); display:flex; align-items:center; justify-content:space-between; padding:16px 18px 12px; }
   .top h2{ font-size:21px; }
@@ -52,6 +57,7 @@
   .nav button{ background:none; border:none; color:var(--muted); font-size:10.5px; display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; padding:4px; font-weight:600; }
   .nav button.on{ color:var(--accent); }
   .nav svg{ width:22px; height:22px; }
+
   .tile{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .stat{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
@@ -68,9 +74,15 @@
   .dot{ width:12px; height:12px; border-radius:4px; flex:none; }
   .sectiontitle{ font-size:13px; font-weight:700; color:var(--muted); margin:18px 2px 8px; text-transform:uppercase; letter-spacing:.04em; }
   .empty{ text-align:center; color:var(--muted); padding:30px 16px; font-size:14px; }
+
+  .swatch{ display:flex; gap:10px; flex-wrap:wrap; }
+  .swatch button{ width:46px; height:46px; border-radius:12px; border:2px solid transparent; }
+  .swatch button.on{ border-color:var(--ink); }
   .themebtns{ display:flex; gap:8px; flex-wrap:wrap; }
   .themebtns button{ border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px; padding:8px 14px; font-weight:600; font-size:13px; }
   .themebtns button.on{ border-color:var(--accent); color:var(--accent); }
+
+  /* modal */
   .modal{ position:fixed; inset:0; background:rgba(20,12,40,.5); display:grid; place-items:end center; z-index:30; }
   .sheet{ background:var(--card); width:100%; max-width:560px; max-height:92vh; overflow:auto; border-radius:20px 20px 0 0; padding:22px 20px calc(20px + env(safe-area-inset-bottom)); }
   .sheet h3{ font-size:19px; margin-bottom:4px; }
@@ -85,6 +97,7 @@
 </style>
 </head>
 <body>
+  <!-- AUTH -->
   <div id="screen-auth" class="center">
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
@@ -95,6 +108,8 @@
       <div id="auth-msg" class="msg hidden"></div>
     </div>
   </div>
+
+  <!-- SENT -->
   <div id="screen-sent" class="center hidden">
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
@@ -103,6 +118,8 @@
       <button class="btn ghost" id="back-btn" style="margin-top:8px">Use a different email</button>
     </div>
   </div>
+
+  <!-- PROFILE SETUP -->
   <div id="screen-setup" class="center hidden">
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
@@ -117,6 +134,8 @@
       <div id="su-msg" class="msg hidden"></div>
     </div>
   </div>
+
+  <!-- MAIN APP -->
   <div id="app">
     <div class="top">
       <h2 id="title">Dashboard</h2>
@@ -125,17 +144,22 @@
     <div class="wrap" id="view"></div>
     <nav class="nav" id="nav"></nav>
   </div>
+
   <div id="modal-root"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
   const SUPABASE_URL = "https://ziuhrptqgscrhpxytjqc.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_5dy99I-YB_7l4qjGqOwtkQ_iJ4_RDhR";
   const ALLOWED = ["chatchavalin@gmail.com","numooynumooy@gmail.com","mansikarn.d@gmail.com","praritsak@gmail.com"];
   const THEMES = ["light","dark","green","purple"];
+
   const $ = (id)=>document.getElementById(id);
   const el = (sel)=>document.querySelector(sel);
   let client=null, me=null, profile=null;
   const state = { subjects:[], subtopics:[], route:"dashboard" };
+
+  /* ---------- supabase bootstrap ---------- */
   function ensureClient(){
     if(client) return client;
     if(window.supabase && window.supabase.createClient){
@@ -156,6 +180,8 @@
     if(email && ALLOWED.includes(email)){ me = session.user; await afterLogin(); }
     else if(email && client){ client.auth.signOut(); }
   }
+
+  /* ---------- auth UI ---------- */
   const authMsg=(k,t)=>{ const m=$("auth-msg"); m.className="msg "+k; m.textContent=t; m.classList.remove("hidden"); };
   $("send-btn").addEventListener("click", async ()=>{
     $("auth-msg").classList.add("hidden");
@@ -173,20 +199,32 @@
   });
   $("email").addEventListener("keydown",e=>{ if(e.key==="Enter") $("send-btn").click(); });
   $("back-btn").addEventListener("click",()=>showScreen("auth"));
-  function showScreen(name){ ["auth","sent","setup"].forEach(s=>$("screen-"+s).classList.toggle("hidden", s!==name)); $("app").style.display="none"; }
+
+  function showScreen(name){
+    ["auth","sent","setup"].forEach(s=>$("screen-"+s).classList.toggle("hidden", s!==name || name==="app"));
+    $("app").style.display = name==="app" ? "block" : "none";
+    if(name!=="app"){ ["auth","sent","setup"].forEach(s=>$("screen-"+s).classList.toggle("hidden", s!==name)); }
+  }
   function hideAllScreens(){ ["auth","sent","setup"].forEach(s=>$("screen-"+s).classList.add("hidden")); }
+
+  /* ---------- after login ---------- */
   async function afterLogin(){
+    // upsert + load profile
     await client.from("profiles").upsert({ id: me.id, email: me.email }, { onConflict:"id" });
     const { data } = await client.from("profiles").select("*").eq("id", me.id).single();
     profile = data || { id:me.id, email:me.email, theme:"light" };
     applyTheme(profile.theme || "light");
     if(!profile.display_name || !profile.grade){ openSetup(); return; }
-    await loadBank(); enterApp();
+    await loadBank();
+    enterApp();
   }
   function applyTheme(t){ document.documentElement.setAttribute("data-theme", THEMES.includes(t)?t:"light"); }
+
+  /* ---------- profile setup ---------- */
   function openSetup(){
     hideAllScreens(); $("app").style.display="none"; $("screen-setup").classList.remove("hidden");
-    $("su-name").value = profile.display_name||""; $("su-grade").value = profile.grade||"";
+    $("su-name").value = profile.display_name||"";
+    $("su-grade").value = profile.grade||"";
     let chosen = profile.theme||"light";
     const box=$("su-themes"); box.innerHTML="";
     THEMES.forEach(t=>{ const b=document.createElement("button"); b.textContent=cap(t); b.className=t===chosen?"on":"";
@@ -199,6 +237,8 @@
       await loadBank(); enterApp();
     };
   }
+
+  /* ---------- data ---------- */
   async function loadBank(){
     const [{data:subs},{data:subtopics}] = await Promise.all([
       client.from("subjects").select("*").order("name"),
@@ -208,6 +248,8 @@
   }
   const subtopicsOf = (sid)=> state.subtopics.filter(s=>s.subject_id===sid);
   const subjectById = (id)=> state.subjects.find(s=>s.id===id);
+
+  /* ---------- app shell + router ---------- */
   const NAV = [
     ["dashboard","Home", '<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'],
     ["bank","Bank", '<path d="M4 7h16M4 12h16M4 17h10"/>'],
@@ -232,8 +274,11 @@
       else if(route==="quiz"||route==="stats") v.innerHTML = `<div class="empty">✨ This arrives in the next update.<br>Build your question bank first!</div>`;
     }catch(e){ v.innerHTML = `<div class="msg err">Error: ${e.message}</div>`; }
   }
+
   function avatarInner(){ return profile.avatar_url ? `<img class="av" src="${profile.avatar_url}" alt="">` : (initials()); }
   function initials(){ const n=profile.display_name||profile.email||"?"; return n.trim().slice(0,1).toUpperCase(); }
+
+  /* ---------- DASHBOARD ---------- */
   async function viewDashboard(v){
     const qCount = await client.from("questions").select("id",{count:"exact",head:true});
     const n = qCount.count||0;
@@ -254,6 +299,8 @@
         <button class="btn primary" onclick="go('bank')">Go to bank</button>
       </div>`;
   }
+
+  /* ---------- BANK ---------- */
   let bankFilter="";
   async function viewBank(v){
     v.innerHTML = `
@@ -283,6 +330,7 @@
       </div>`;
     }).join("");
   }
+
   async function openQ(id){
     let q = { type:"mcq", answer_mode:"single", grade:profile.grade||"", subject_id:state.subjects[0]?.id||"", choices:[{label:"ก"},{label:"ข"},{label:"ค"},{label:"ง"}] };
     if(id){
@@ -292,107 +340,185 @@
     }
     renderQModal(q, id);
   }
+
   function renderQModal(q, id){
-    const subsOpt = state.subjects.map(s=>`<option value="${s.id}" ${s.id===q.subject_id?"selected":""}>${esc(s.name)}</optio  input[type="email"]{ width:100%; font-family:var(--font-body); font-size:16px; color:var(--ink); padding:13px 15px; border:1.5px solid var(--line); border-radius:12px; background:transparent; transition:border-color .15s,box-shadow .15s; }
-  input[type="email"]:focus{ outline:none; border-color:var(--purple); box-shadow:0 0 0 4px rgba(124,77,255,.15); }
-  button.primary{ width:100%; margin-top:16px; cursor:pointer; font-family:var(--font-display); font-weight:600; font-size:15.5px; color:#fff; padding:14px 16px; border:none; border-radius:12px; background:linear-gradient(135deg,var(--green-deep),var(--purple-deep)); transition:transform .12s,filter .15s,opacity .15s; }
-  button.primary:hover{ filter:brightness(1.07); } button.primary:active{ transform:translateY(1px); } button.primary:disabled{ opacity:.55; cursor:default; }
-  .ghost{ background:none; border:none; color:var(--purple); font-family:var(--font-body); font-weight:600; font-size:14px; cursor:pointer; padding:6px; margin-top:14px; }
-  .msg{ margin-top:16px; font-size:13.5px; line-height:1.5; border-radius:12px; padding:12px 14px; }
-  .msg.info{ background:rgba(124,77,255,.08); color:var(--ink); border:1px solid var(--line); }
-  .msg.ok{ background:rgba(31,191,117,.12); color:var(--green-deep); }
-  .msg.err{ background:rgba(216,69,107,.10); color:var(--danger); }
-  .hidden{ display:none !important; }
-  .signed-email{ font-weight:600; } .foot{ margin-top:26px; font-size:12px; color:var(--muted); text-align:center; }
-</style>
-</head>
-<body>
-  <div class="field" aria-hidden="true"></div>
-  <main class="card">
-    <div class="brand">
-      <span class="spark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span>
-      <span class="wordmark">ExamForge</span>
-    </div>
-    <section id="view-login">
-      <h1>Sign in</h1>
-      <p class="sub">This is a private study space. Enter your email and we'll send you a one-tap sign-in link.</p>
-      <label for="email">Email</label>
-      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@gmail.com" />
-      <button class="primary" id="send-btn">Send my login link</button>
-      <div id="login-msg" class="msg hidden"></div>
-    </section>
-    <section id="view-sent" class="hidden">
-      <h1>Check your email</h1>
-      <p class="sub">We sent a sign-in link to <span class="signed-email" id="sent-to"></span>. Open it on this device to come straight back here.</p>
-      <button class="ghost" id="back-btn">Use a different email</button>
-    </section>
-    <section id="view-app" class="hidden">
-      <h1>You're in 🎉</h1>
-      <p class="sub">Signed in as <span class="signed-email" id="app-email"></span>.</p>
-      <div class="msg ok">Phase 0 complete — the pipeline works end to end. Next we build profiles and the question bank.</div>
-      <button class="ghost" id="signout-btn">Sign out</button>
-    </section>
-    <p class="foot">ExamForge · private family edition</p>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
-    const SUPABASE_URL = "https://ziuhrptqgscrhpxytjqc.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_5dy99I-YB_7l4qjGqOwtkQ_iJ4_RDhR";
-    const ALLOWED_EMAILS = ["chatchavalin@gmail.com","numooynumooy@gmail.com","mansikarn.d@gmail.com","praritsak@gmail.com"];
-
-    const $ = (id) => document.getElementById(id);
-    const views = { login:$("view-login"), sent:$("view-sent"), app:$("view-app") };
-    const show = (n) => Object.entries(views).forEach(([k,el]) => el.classList.toggle("hidden", k!==n));
-    const loginMsg = $("login-msg");
-    const tell = (k,t) => { loginMsg.className = "msg "+k; loginMsg.textContent = t; loginMsg.classList.remove("hidden"); };
-    const clearTell = () => loginMsg.classList.add("hidden");
-
-    let client = null;
-    function handleSession(session){
-      const email = session?.user?.email?.toLowerCase();
-      if (email && ALLOWED_EMAILS.includes(email)){ $("app-email").textContent = email; show("app"); }
-      else if (email && client){ client.auth.signOut(); }
-    }
-    function ensureClient(){
-      if (client) return client;
-      if (window.supabase && window.supabase.createClient){
-        client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        client.auth.onAuthStateChange((_e, s) => handleSession(s));
-        client.auth.getSession().then(({data}) => handleSession(data?.session)).catch(()=>{});
+    const subsOpt = state.subjects.map(s=>`<option value="${s.id}" ${s.id===q.subject_id?"selected":""}>${esc(s.name)}</option>`).join("");
+    const stOpts = (sid)=> `<option value="">— sub-topic —</option>`+subtopicsOf(sid).map(t=>`<option value="${t.id}" ${t.id===q.subtopic_id?"selected":""}>${esc(t.name)}</option>`).join("");
+    const labels=["ก","ข","ค","ง"];
+    const choicesHtml = labels.map((lab,i)=>{ const c=q.choices[i]||{}; return `
+      <div class="choicerow">
+        <span class="lab">${lab}</span>
+        <input type="text" id="ch${i}" placeholder="Choice ${lab}" value="${esc(c.content||"")}" />
+        <input type="checkbox" class="ck" id="ck${i}" ${c.is_correct?"checked":""} title="Correct" />
+      </div>`; }).join("");
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML = `<div class="sheet">
+      <button class="close" onclick="closeModal()">×</button>
+      <h3>${id?"Edit":"Add"} question</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 14px">Tick the box on the right for the correct choice(s).</p>
+      <div class="field"><label>Subject</label><select id="q-sub">${subsOpt}</select></div>
+      <div class="row">
+        <div class="field"><label>Sub-topic</label><select id="q-st">${stOpts(q.subject_id)}</select></div>
+        <div class="field"><label>Grade</label><select id="q-grade"><option ${!q.grade?"selected":""} value="">—</option><option ${q.grade==="P6"?"selected":""}>P6</option><option ${q.grade==="M2"?"selected":""}>M2</option><option ${q.grade==="Other"?"selected":""}>Other</option></select></div>
+      </div>
+      <div class="field"><label>Type</label>
+        <div class="seg" id="q-type">
+          <button data-v="mcq" class="${q.type!=="written"?"on":""}">Multiple choice</button>
+          <button data-v="written" class="${q.type==="written"?"on":""}">Written</button>
+        </div>
+      </div>
+      <div id="mcq-block" class="${q.type==="written"?"hidden":""}">
+        <div class="field"><label>Answer mode</label>
+          <div class="seg" id="q-mode">
+            <button data-v="single" class="${q.answer_mode!=="multi"?"on":""}">One answer</button>
+            <button data-v="multi" class="${q.answer_mode==="multi"?"on":""}">Select all</button>
+          </div>
+        </div>
+        <label>Choices</label>${choicesHtml}
+      </div>
+      <div id="written-block" class="${q.type==="written"?"":"hidden"}">
+        <div class="field"><label>Model answer</label><textarea id="q-answer" placeholder="The correct written answer">${esc(q.answer_text||"")}</textarea></div>
+      </div>
+      <div class="field"><label>Passage (optional — e.g. English reading)</label><textarea id="q-passage" placeholder="Leave empty if none">${esc(q.passage||"")}</textarea></div>
+      <div class="field"><label>Question</label><textarea id="q-stem" placeholder="The question text">${esc(q.stem||"")}</textarea></div>
+      <div class="field"><label>Explanation (optional)</label><textarea id="q-exp" placeholder="Why the answer is correct">${esc(q.explanation||"")}</textarea></div>
+      <div id="q-msg" class="msg hidden"></div>
+      <div class="row" style="margin-top:8px">
+        ${id?`<button class="btn danger" style="flex:none" onclick="delQ('${id}')">Delete</button>`:""}
+        <button class="btn primary" onclick="saveQ('${id||""}')">Save question</button>
+      </div>
+    </div>`;
+    $("modal-root").appendChild(m);
+    let cur={type:q.type||"mcq", mode:q.answer_mode||"single"};
+    m.querySelector("#q-sub").onchange=(e)=>{ m.querySelector("#q-st").innerHTML = `<option value="">— sub-topic —</option>`+subtopicsOf(e.target.value).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join(""); };
+    m.querySelectorAll("#q-type button").forEach(b=>b.onclick=()=>{ cur.type=b.dataset.v; m.querySelectorAll("#q-type button").forEach(x=>x.classList.toggle("on",x===b)); m.querySelector("#mcq-block").classList.toggle("hidden",cur.type==="written"); m.querySelector("#written-block").classList.toggle("hidden",cur.type!=="written"); });
+    m.querySelectorAll("#q-mode button").forEach(b=>b.onclick=()=>{ cur.mode=b.dataset.v; m.querySelectorAll("#q-mode button").forEach(x=>x.classList.toggle("on",x===b)); });
+    m._cur=cur;
+  }
+  window.closeModal=()=>{ const r=$("modal-root"); r.innerHTML=""; };
+  async function saveQ(id){
+    const m=el(".modal"); const cur=m._cur;
+    const stem=m.querySelector("#q-stem").value.trim();
+    if(!stem){ qmsg("Please enter the question text."); return; }
+    const payload = {
+      subject_id: m.querySelector("#q-sub").value||null,
+      subtopic_id: m.querySelector("#q-st").value||null,
+      grade: m.querySelector("#q-grade").value||null,
+      type: cur.type, answer_mode: cur.type==="written"?"single":cur.mode,
+      passage: m.querySelector("#q-passage").value.trim()||null,
+      stem, explanation: m.querySelector("#q-exp").value.trim()||null,
+      answer_text: cur.type==="written" ? (m.querySelector("#q-answer").value.trim()||null) : null
+    };
+    let qid=id;
+    try{
+      if(id){ await client.from("questions").update(payload).eq("id",id); await client.from("choices").delete().eq("question_id",id); }
+      else { const {data,error}=await client.from("questions").insert(payload).select("id").single(); if(error) throw error; qid=data.id; }
+      if(cur.type!=="written"){
+        const labels=["ก","ข","ค","ง"]; const rows=[];
+        labels.forEach((lab,i)=>{ const c=m.querySelector("#ch"+i).value.trim(); if(c) rows.push({ question_id:qid, label:lab, content:c, is_correct:m.querySelector("#ck"+i).checked, position:i }); });
+        if(rows.length) await client.from("choices").insert(rows);
       }
-      return client;
-    }
-    function loadLib(){
-      if (window.supabase){ ensureClient(); return; }
-      const s = document.createElement("script");
-      s.src = "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js";
-      s.onload = () => ensureClient();
-      s.onerror = () => tell("err","Couldn't load the login service. Check your internet and refresh the page.");
-      document.body.appendChild(s);
-    }
+      closeModal(); loadQ();
+    }catch(e){ qmsg("Error: "+(e.message||e)); }
+  }
+  function qmsg(t){ const m=el("#q-msg"); m.className="msg err"; m.textContent=t; m.classList.remove("hidden"); }
+  async function delQ(id){ if(!confirm("Delete this question?")) return; await client.from("questions").delete().eq("id",id); closeModal(); loadQ(); }
 
-    $("send-btn").addEventListener("click", async () => {
-      clearTell();
-      const email = $("email").value.trim().toLowerCase();
-      if (!email){ tell("err","Enter your email to continue."); return; }
-      if (!ALLOWED_EMAILS.includes(email)){ tell("err","This app is private. That email isn't on the list."); return; }
-      const c = ensureClient();
-      if (!c){ tell("info","Login service is still loading — give it a few seconds and tap again."); loadLib(); return; }
-      $("send-btn").disabled = true; $("send-btn").textContent = "Sending…";
-      try {
-        const { error } = await c.auth.signInWithOtp({ email, options:{ shouldCreateUser:false, emailRedirectTo: window.location.href } });
-        if (error){ tell("err", "Error: " + error.message); }
-        else { $("sent-to").textContent = email; show("sent"); }
-      } catch(e){ tell("err","Something went wrong: " + (e.message || e)); }
-      $("send-btn").disabled = false; $("send-btn").textContent = "Send my login link";
-    });
-    $("email").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("send-btn").click(); });
-    $("back-btn").addEventListener("click",()=>{ clearTell(); show("login"); });
-    $("signout-btn").addEventListener("click", async ()=>{ const c=ensureClient(); if(c) await c.auth.signOut(); show("login"); });
+  /* ---------- SUBJECTS ---------- */
+  function viewSubjects(v){
+    $("title").textContent="Subjects & topics";
+    v.innerHTML = `
+      <button class="btn sm ghost" onclick="go('bank')">← Back to bank</button>
+      <div class="sectiontitle">Add a subject</div>
+      <div class="tile">
+        <div class="row"><input id="ns-name" placeholder="Subject name"><input id="ns-color" type="color" value="#7c4dff" style="flex:none;width:52px;padding:4px"></div>
+        <button class="btn primary sm" style="margin-top:10px" onclick="addSubject()">Add subject</button>
+      </div>
+      <div id="subjlist"></div>`;
+    renderSubjects();
+  }
+  function renderSubjects(){
+    const box=$("subjlist"); if(!box) return;
+    box.innerHTML = state.subjects.map(s=>`
+      <div class="tile">
+        <div class="listitem" style="border:none;padding-top:0">
+          <div class="dot" style="background:${s.color}"></div>
+          <div class="grow"><div class="t">${esc(s.name)}</div><div class="s">${subtopicsOf(s.id).length} sub-topics</div></div>
+          <button class="btn sm danger" onclick="delSubject('${s.id}')">Delete</button>
+        </div>
+        <div style="margin:6px 0 0">${subtopicsOf(s.id).map(t=>`<span class="chip" style="margin:0 6px 6px 0">${esc(t.name)} <span onclick="delTopic('${t.id}')" style="cursor:pointer;color:var(--danger)">×</span></span>`).join("")}</div>
+        <div class="row" style="margin-top:8px"><input id="nt-${s.id}" placeholder="New sub-topic (e.g. Waves)"><button class="btn sm" style="flex:none" onclick="addTopic('${s.id}')">+ Topic</button></div>
+      </div>`).join("") || `<div class="empty">No subjects yet.</div>`;
+  }
+  async function addSubject(){
+    const name=$("ns-name").value.trim(); if(!name) return;
+    const color=$("ns-color").value;
+    const {error}=await client.from("subjects").insert({name,color});
+    if(error){ alert(error.message); return; }
+    await loadBank(); renderSubjects();
+  }
+  async function delSubject(id){ if(!confirm("Delete subject and its questions?")) return; await client.from("subjects").delete().eq("id",id); await loadBank(); renderSubjects(); }
+  async function addTopic(sid){ const i=$("nt-"+sid); const name=i.value.trim(); if(!name) return; await client.from("subtopics").insert({subject_id:sid,name}); await loadBank(); renderSubjects(); }
+  async function delTopic(id){ await client.from("subtopics").delete().eq("id",id); await loadBank(); renderSubjects(); }
 
-    ensureClient();
-    if (!client) loadLib();
+  /* ---------- SETTINGS ---------- */
+  function viewSettings(v){
+    v.innerHTML = `
+      <div class="tile pcard">
+        <label for="av-file" style="cursor:pointer;margin:0">
+          <div class="av" style="width:58px;height:58px;font-size:22px">${profile.avatar_url?`<img class="av" src="${profile.avatar_url}">`:initials()}</div>
+        </label>
+        <input id="av-file" type="file" accept="image/*" class="hidden">
+        <div><div style="font-family:var(--fd);font-weight:700;font-size:18px">${esc(profile.display_name||"")}</div>
+        <div style="font-size:12.5px;color:var(--muted)">${esc(profile.email||"")}</div>
+        <div style="font-size:12px;color:var(--accent);margin-top:2px">Tap photo to change</div></div>
+      </div>
+      <div class="sectiontitle">Profile</div>
+      <div class="tile">
+        <div class="field"><label>Name</label><input id="se-name" value="${esc(profile.display_name||"")}"></div>
+        <div class="field"><label>Grade</label><select id="se-grade"><option ${profile.grade==="P6"?"selected":""}>P6</option><option ${profile.grade==="M2"?"selected":""}>M2</option><option ${profile.grade==="Other"?"selected":""}>Other</option></select></div>
+        <button class="btn primary sm" onclick="saveProfile()">Save</button>
+      </div>
+      <div class="sectiontitle">Theme</div>
+      <div class="tile"><div class="themebtns" id="se-themes"></div></div>
+      <div class="sectiontitle">Account</div>
+      <div class="tile"><button class="btn danger" onclick="signOut()">Sign out</button></div>
+      <div id="se-msg" class="msg hidden"></div>`;
+    const box=$("se-themes");
+    THEMES.forEach(t=>{ const b=document.createElement("button"); b.textContent=cap(t); b.className=(profile.theme||"light")===t?"on":"";
+      b.onclick=async()=>{ applyTheme(t); profile.theme=t; [...box.children].forEach(c=>c.className=""); b.className="on"; await client.from("profiles").update({theme:t}).eq("id",me.id); }; box.appendChild(b); });
+    $("av-file").onchange = uploadAvatar;
+  }
+  async function saveProfile(){
+    const name=$("se-name").value.trim(), grade=$("se-grade").value;
+    await client.from("profiles").update({display_name:name,grade}).eq("id",me.id);
+    profile.display_name=name; profile.grade=grade;
+    const m=$("se-msg"); m.className="msg ok"; m.textContent="Saved."; m.classList.remove("hidden");
+    $("top-av").innerHTML=avatarInner();
+  }
+  async function uploadAvatar(e){
+    const file=e.target.files[0]; if(!file) return;
+    const ext=(file.name.split(".").pop()||"jpg").toLowerCase();
+    const path=`${me.id}/${Date.now()}.${ext}`;
+    const m=$("se-msg"); m.className="msg"; m.textContent="Uploading…"; m.classList.remove("hidden");
+    const {error}=await client.storage.from("avatars").upload(path,file,{upsert:true});
+    if(error){ m.className="msg err"; m.textContent="Upload failed: "+error.message; return; }
+    const {data}=client.storage.from("avatars").getPublicUrl(path);
+    const url=data.publicUrl;
+    await client.from("profiles").update({avatar_url:url}).eq("id",me.id);
+    profile.avatar_url=url; viewSettings($("view")); $("top-av").innerHTML=avatarInner();
+  }
+  async function signOut(){ await client.auth.signOut(); location.reload(); }
+
+  /* ---------- utils ---------- */
+  function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+  function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  window.go=go; window.go2=go2; window.openQ=openQ; window.saveQ=saveQ; window.delQ=delQ;
+  window.addSubject=addSubject; window.delSubject=delSubject; window.addTopic=addTopic; window.delTopic=delTopic;
+  window.saveProfile=saveProfile; window.signOut=signOut;
+
+  /* ---------- start ---------- */
+  ensureClient(); if(!client) loadLib();
   </script>
 </body>
 </html>
