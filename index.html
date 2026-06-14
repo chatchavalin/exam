@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ExamForge</title>
+<meta name="theme-color" content="#7c4dff" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="ExamForge" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -116,9 +121,10 @@
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
       <h1 style="font-size:24px;margin-bottom:6px">Sign in</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Enter your email for a one-tap login link.</p>
-      <div class="field"><input id="email" type="email" placeholder="you@gmail.com" /></div>
-      <button class="btn primary" id="send-btn" style="width:100%">Send my login link</button>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Sign in with your email and password.</p>
+      <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="you@gmail.com" /></div>
+      <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password" /></div>
+      <button class="btn primary" id="send-btn" style="width:100%">Sign in</button>
       <div id="auth-msg" class="msg hidden"></div>
     </div>
   </div>
@@ -200,18 +206,19 @@
   $("send-btn").addEventListener("click", async ()=>{
     $("auth-msg").classList.add("hidden");
     const email=$("email").value.trim().toLowerCase();
-    if(!email){ authMsg("err","Enter your email."); return; }
+    const password=$("password").value;
+    if(!email || !password){ authMsg("err","Enter your email and password."); return; }
     if(!ALLOWED.includes(email)){ authMsg("err","This app is private. That email isn't on the list."); return; }
     const c=ensureClient(); if(!c){ authMsg("err","Still loading — try again in a moment."); loadLib(); return; }
-    $("send-btn").disabled=true; $("send-btn").textContent="Sending…";
+    $("send-btn").disabled=true; $("send-btn").textContent="Signing in…";
     try{
-      const {error}=await c.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:window.location.href}});
-      if(error) authMsg("err","Error: "+error.message);
-      else { $("sent-to").textContent=email; showScreen("sent"); }
+      const {error}=await c.auth.signInWithPassword({email,password});
+      if(error) authMsg("err","Login failed: "+error.message);
     }catch(e){ authMsg("err","Something went wrong: "+(e.message||e)); }
-    $("send-btn").disabled=false; $("send-btn").textContent="Send my login link";
+    $("send-btn").disabled=false; $("send-btn").textContent="Sign in";
   });
-  $("email").addEventListener("keydown",e=>{ if(e.key==="Enter") $("send-btn").click(); });
+  $("password").addEventListener("keydown",e=>{ if(e.key==="Enter") $("send-btn").click(); });
+  $("email").addEventListener("keydown",e=>{ if(e.key==="Enter") $("password").focus(); });
   $("back-btn").addEventListener("click",()=>showScreen("auth"));
 
   function showScreen(name){
@@ -496,13 +503,24 @@
       </div>
       <div class="sectiontitle">Theme</div>
       <div class="tile"><div class="themebtns" id="se-themes"></div></div>
+      <div class="sectiontitle">Backup</div>
+      <div class="tile">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Save all subjects &amp; questions to a file, or restore from one. Keep a copy somewhere safe.</div>
+        <button class="btn primary sm" onclick="exportData()">Download backup</button>
+        <label for="imp-file" class="btn sm" style="display:inline-block;margin-left:8px">Restore from file</label>
+        <input id="imp-file" type="file" accept=".json,application/json" class="hidden">
+        <div id="bk-msg" class="msg hidden"></div>
+      </div>
+      <div class="sectiontitle">Install on tablet</div>
+      <div class="tile"><div style="font-size:13px;color:var(--muted)">In your browser menu, tap <b>Add to Home Screen</b> to use ExamForge like a real app — full screen, with its own icon.</div></div>
       <div class="sectiontitle">Account</div>
-      <div class="tile"><button class="btn danger" onclick="signOut()">Sign out</button></div>
+      <div class="tile"><button class="btn sm" onclick="changePassword()">Change password</button> <button class="btn danger" onclick="signOut()">Sign out</button></div>
       <div id="se-msg" class="msg hidden"></div>`;
     const box=$("se-themes");
     THEMES.forEach(t=>{ const b=document.createElement("button"); b.textContent=cap(t); b.className=(profile.theme||"light")===t?"on":"";
       b.onclick=async()=>{ applyTheme(t); profile.theme=t; [...box.children].forEach(c=>c.className=""); b.className="on"; await client.from("profiles").update({theme:t}).eq("id",me.id); }; box.appendChild(b); });
     $("av-file").onchange = uploadAvatar;
+    const imp=$("imp-file"); if(imp) imp.onchange=importData;
   }
   async function saveProfile(){
     const name=$("se-name").value.trim(), grade=$("se-grade").value;
@@ -524,6 +542,73 @@
     profile.avatar_url=url; viewSettings($("view")); $("top-av").innerHTML=avatarInner();
   }
   async function signOut(){ await client.auth.signOut(); location.reload(); }
+  async function changePassword(){
+    const p=prompt("New password (at least 6 characters):");
+    if(p==null) return;
+    if(p.length<6){ alert("Too short — please use at least 6 characters."); return; }
+    const {error}=await client.auth.updateUser({password:p});
+    alert(error?("Couldn't change password: "+error.message):"Password updated. Use it next time you sign in.");
+  }
+
+  /* ---------- BACKUP / RESTORE ---------- */
+  function bkmsg(kind,t){ const m=$("bk-msg"); if(!m)return; m.className="msg "+(kind||""); m.textContent=t; m.classList.remove("hidden"); }
+  async function exportData(){
+    bkmsg("","Preparing backup…");
+    try{
+      const [s,st,q,c,n,at,an]=await Promise.all([
+        client.from("subjects").select("*"),
+        client.from("subtopics").select("*"),
+        client.from("questions").select("*"),
+        client.from("choices").select("*"),
+        client.from("notes").select("*").eq("user_id",me.id),
+        client.from("attempts").select("*"),
+        client.from("answers").select("*")
+      ]);
+      const dump={ app:"ExamForge", version:1, exportedAt:new Date().toISOString(), by:me.email,
+        subjects:s.data||[], subtopics:st.data||[], questions:q.data||[], choices:c.data||[],
+        notes:n.data||[], attempts:at.data||[], answers:an.data||[] };
+      const blob=new Blob([JSON.stringify(dump,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob); const a=document.createElement("a");
+      a.href=url; a.download="examforge-backup-"+new Date().toISOString().slice(0,10)+".json";
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+      bkmsg("ok","Backup downloaded ("+(q.data||[]).length+" questions).");
+    }catch(e){ bkmsg("err","Backup failed: "+e.message); }
+  }
+  async function importData(e){
+    const file=e.target.files[0]; if(!file) return;
+    bkmsg("","Reading file…");
+    let dump; try{ dump=JSON.parse(await file.text()); }catch(err){ bkmsg("err","That file isn't a valid backup."); return; }
+    if(!dump||!Array.isArray(dump.questions)){ bkmsg("err","That file isn't an ExamForge backup."); return; }
+    try{
+      await loadBank();
+      const subMap={};
+      for(const s of (dump.subjects||[])){
+        let ex=state.subjects.find(x=>x.name===s.name);
+        if(!ex){ const {data}=await client.from("subjects").insert({name:s.name,color:s.color||"#7c4dff",default_time_per_q:s.default_time_per_q||60}).select("*").single(); ex=data; if(ex)state.subjects.push(ex); }
+        if(ex) subMap[s.id]=ex.id;
+      }
+      const {data:curSt}=await client.from("subtopics").select("*");
+      const stMap={};
+      for(const t of (dump.subtopics||[])){
+        const newSub=subMap[t.subject_id]; if(!newSub) continue;
+        let ex=(curSt||[]).find(x=>x.subject_id===newSub&&x.name===t.name);
+        if(!ex){ const {data}=await client.from("subtopics").insert({subject_id:newSub,name:t.name}).select("*").single(); ex=data; }
+        if(ex) stMap[t.id]=ex.id;
+      }
+      let added=0;
+      for(const q of dump.questions){
+        const ins={ subject_id:subMap[q.subject_id]||state.subjects[0]?.id||null, subtopic_id:stMap[q.subtopic_id]||null,
+          grade:q.grade||null, type:q.type||"mcq", answer_mode:q.answer_mode||"single", passage:q.passage||null,
+          stem:q.stem||"", answer_text:q.answer_text||null, explanation:q.explanation||null, created_by:me.id };
+        const {data:nq,error}=await client.from("questions").insert(ins).select("id").single();
+        if(error||!nq) continue;
+        const ch=(dump.choices||[]).filter(c=>c.question_id===q.id);
+        if(ch.length){ await client.from("choices").insert(ch.map(c=>({question_id:nq.id,label:c.label,content:c.content,is_correct:!!c.is_correct,position:c.position||0}))); }
+        added++;
+      }
+      bkmsg("ok","Restored "+added+" questions. Refresh to see them in the Bank.");
+    }catch(err){ bkmsg("err","Restore failed: "+err.message); }
+  }
 
   /* ---------- QUIZ ---------- */
   const LOCK_WORDS = ["ถูกทุกข้อ","ผิดทุกข้อ","ไม่มีข้อ","ทั้งหมด","ถูกทั้ง","all of","none of","both ","ก และ","ข และ"];
