@@ -291,11 +291,18 @@
 
   /* ---------- data ---------- */
   async function loadBank(){
+    if(!state.bankOwner) state.bankOwner = me.id;
     const [{data:subs},{data:subtopics}] = await Promise.all([
       client.from("subjects").select("*").order("name"),
       client.from("subtopics").select("*").order("name")
     ]);
     state.subjects = subs||[]; state.subtopics = subtopics||[];
+    if(profile && profile.role!=="child"){
+      try{
+        const {data}=await client.from("allowed_users").select("child_id,display_name,email").eq("parent_email",(me.email||"").toLowerCase());
+        state.kids=(data||[]).filter(k=>k.child_id).map(k=>({id:k.child_id, name:k.display_name||k.email}));
+      }catch(e){ state.kids=[]; }
+    } else state.kids=[];
   }
   const subtopicsOf = (sid)=> state.subtopics.filter(s=>s.subject_id===sid);
   const subjectById = (id)=> state.subjects.find(s=>s.id===id);
@@ -333,7 +340,7 @@
 
   /* ---------- DASHBOARD ---------- */
   async function viewDashboard(v){
-    const qCount = await client.from("questions").select("id",{count:"exact",head:true});
+    const qCount = await client.from("questions").select("id",{count:"exact",head:true}).eq("owner_id", state.bankOwner);
     const n = qCount.count||0;
     const {data:atts}=await client.from("attempts").select("created_at");
     const ansCount = await client.from("answers").select("id",{count:"exact",head:true});
@@ -381,7 +388,16 @@
   /* ---------- BANK ---------- */
   let bankFilter="", bankSearch="", bankData=[];
   async function viewBank(v){
+    const owners=[{id:me.id,name:"My bank"}].concat(state.kids||[]);
+    const ownerSel = (profile.role!=="child" && (state.kids||[]).length)
+      ? `<div class="row" style="margin:6px 0"><select id="bk-owner" style="flex:1">${owners.map(o=>`<option value="${o.id}" ${o.id===state.bankOwner?"selected":""}>${o.id===me.id?"📚 My bank":"👤 "+esc(o.name)+"’s bank"}</option>`).join("")}</select></div>`
+      : "";
+    const banner = (state.bankOwner!==me.id)
+      ? `<div class="tile" style="background:var(--accent);color:#fff;padding:10px 12px;margin-bottom:10px;font-size:13px">You're building <b>${esc((state.kids.find(k=>k.id===state.bankOwner)||{}).name||"a kid")}</b>'s bank. New questions go to them.</div>`
+      : "";
     v.innerHTML = `
+      ${ownerSel}
+      ${banner}
       <div class="row" style="margin:6px 0 12px">
         <select id="bk-filter"><option value="">All subjects</option>${state.subjects.map(s=>`<option value="${s.id}" ${s.id===bankFilter?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
         <button class="btn primary" style="flex:none" onclick="openQ()">+ Add</button>
@@ -389,13 +405,14 @@
       <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects &amp; topics →</button><button class="btn sm ghost" onclick="openImport()">Bulk import →</button><button class="btn sm ghost" onclick="openImageImport()">Image import →</button></div>
       <input id="bk-search" placeholder="🔍 Search questions…" oninput="bankSearchInput(this.value)" style="width:100%;margin-bottom:10px">
       <div id="qlist"><div class="empty">Loading…</div></div>`;
+    const bo=$("bk-owner"); if(bo) bo.onchange=(e)=>{ state.bankOwner=e.target.value; viewBank(v); };
     $("bk-filter").onchange = (e)=>{ bankFilter=e.target.value; loadQ(); };
     loadQ();
   }
   function bankSearchInput(v){ bankSearch=(v||"").trim().toLowerCase(); renderBankList(); }
   function go2(name){ if(name==="subjects") viewSubjects($("view")); }
   async function loadQ(){
-    let q = client.from("questions").select("*").order("created_at",{ascending:false}).limit(300);
+    let q = client.from("questions").select("*").eq("owner_id", state.bankOwner).order("created_at",{ascending:false}).limit(300);
     if(bankFilter) q = q.eq("subject_id", bankFilter);
     const { data } = await q; bankData = data||[]; renderBankList();
   }
@@ -496,7 +513,7 @@
     let qid=id;
     try{
       if(id){ await client.from("questions").update(payload).eq("id",id); await client.from("choices").delete().eq("question_id",id); }
-      else { const {data,error}=await client.from("questions").insert(payload).select("id").single(); if(error) throw error; qid=data.id; }
+      else { const {data,error}=await client.from("questions").insert({...payload, created_by:me.id, owner_id:state.bankOwner}).select("id").single(); if(error) throw error; qid=data.id; }
       if(cur.type!=="written"){
         const labels=["ก","ข","ค","ง"]; const rows=[];
         labels.forEach((lab,i)=>{ const c=m.querySelector("#ch"+i).value.trim(); if(c) rows.push({ question_id:qid, label:lab, content:c, is_correct:m.querySelector("#ck"+i).checked, position:i }); });
@@ -608,7 +625,7 @@
       if(skip && existing.has(it.stem.trim().toLowerCase())){ skipped++; continue; }
       let sid=subByName[(it.subject||"").toLowerCase()];
       if(!sid && it.subject){ const {data}=await client.from("subjects").insert({name:it.subject,color:"#7c4dff",default_time_per_q:60}).select("*").single(); if(data){ sid=data.id; subByName[it.subject.toLowerCase()]=sid; state.subjects.push(data); } }
-      const ins={ subject_id:sid||state.subjects[0]?.id||null, subtopic_id:null, grade:it.grade||null, type:it.type, answer_mode:it.answer_mode, passage:null, stem:it.stem, answer_text:it.answer_text||null, explanation:it.explanation||null, created_by:me.id };
+      const ins={ subject_id:sid||state.subjects[0]?.id||null, subtopic_id:null, grade:it.grade||null, type:it.type, answer_mode:it.answer_mode, passage:null, stem:it.stem, answer_text:it.answer_text||null, explanation:it.explanation||null, created_by:me.id, owner_id:state.bankOwner };
       const {data:nq,error}=await client.from("questions").insert(ins).select("id").single();
       if(error||!nq) continue;
       if(it.type==="mcq" && it.choices.length){ const labels=["ก","ข","ค","ง","จ","ฉ"]; await client.from("choices").insert(it.choices.map((c,idx)=>({question_id:nq.id,label:labels[idx]||String(idx+1),content:c.content,is_correct:!!c.correct,position:idx}))); }
@@ -899,7 +916,7 @@
         const path=`${me.id}/${Date.now()}_${k}.jpg`;
         const up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
         const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
-        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id }).select("id").single();
+        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id, owner_id:state.bankOwner }).select("id").single();
         if(error||!nq) throw (error||new Error("insert"));
         const cnt=Math.max(2, Math.min(6, cd.count||4));
         await client.from("choices").insert(labels.slice(0,cnt).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:L===cd.ans,position:idx})));
@@ -1229,7 +1246,7 @@
         const path=`${me.id}/${Date.now()}_f${k}.jpg`;
         const up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
         const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
-        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade:fg.gr||null, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id }).select("id").single();
+        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade:fg.gr||null, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id, owner_id:state.bankOwner }).select("id").single();
         if(error||!nq) continue;
         await client.from("choices").insert(AI_LABELS.slice(0,fg.count).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:L===fg.ans,position:idx})));
         added++;
@@ -1285,7 +1302,7 @@
       for(const q of dump.questions){
         const ins={ subject_id:subMap[q.subject_id]||state.subjects[0]?.id||null, subtopic_id:stMap[q.subtopic_id]||null,
           grade:q.grade||null, type:q.type||"mcq", answer_mode:q.answer_mode||"single", passage:q.passage||null,
-          stem:q.stem||"", answer_text:q.answer_text||null, explanation:q.explanation||null, created_by:me.id };
+          stem:q.stem||"", answer_text:q.answer_text||null, explanation:q.explanation||null, created_by:me.id, owner_id:state.bankOwner };
         const {data:nq,error}=await client.from("questions").insert(ins).select("id").single();
         if(error||!nq) continue;
         const ch=(dump.choices||[]).filter(c=>c.question_id===q.id);
@@ -1547,7 +1564,7 @@
     const good=pairs.filter(p=>p.en&&p.th);
     if(!good.length){ set(aiErr?("Couldn't translate: "+aiErr):"Nothing to add — type some words or pick an image."); return; }
     try{ set("Saving "+good.length+" word(s)…"); const vid=await vocabSubjectId();
-      const r=await client.from("questions").insert(good.map(p=>({subject_id:vid,subtopic_id:null,grade:null,type:"written",answer_mode:"single",stem:p.en,answer_text:p.th,created_by:me.id}))); if(r.error) throw r.error;
+      const r=await client.from("questions").insert(good.map(p=>({subject_id:vid,subtopic_id:null,grade:null,type:"written",answer_mode:"single",stem:p.en,answer_text:p.th,created_by:me.id, owner_id:state.bankOwner}))); if(r.error) throw r.error;
       viewVocab($("view"));
     }catch(e){ set("Save failed: "+(e.message||e)); }
   }
