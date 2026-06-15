@@ -468,6 +468,7 @@
 
   /* ---------- BULK IMPORT ---------- */
   function openImport(){
+    aiFigs=[];
     const subsOpt = state.subjects.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join("");
     const sample = "[Subject] Math\n[Grade] P6\n\nQ: What is 2 + 2?\nA) 3\n*B) 4\nC) 5\nD) 6\nE: Two plus two equals four.\n\nQ: Which are even? (tick all)\n*A) 2\nB) 3\n*C) 4\nD) 5\n\n[Subject] Thai\nW: What is the capital of Thailand?\nANSWER: Bangkok";
     const m=document.createElement("div"); m.className="modal";
@@ -482,6 +483,7 @@
         <div class="row"><div class="field" style="flex:1"><label>AI</label><select id="ai-prov"><option value="gemini">Gemini (free)</option><option value="claude">Claude (paid)</option></select></div><div class="field" style="flex:1"><label>PDF or photo</label><input id="ai-file" type="file" accept="image/*,application/pdf"></div></div>
         <button class="btn primary" style="padding:8px 14px;font-size:13px" onclick="aiExtract()">Extract questions</button>
         <div id="ai-stat" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+        <div id="ai-figs" style="margin-top:10px"></div>
         <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Reads the file and fills the box below — then Preview &amp; Import as usual. Add your API key in <b>You → AI auto-import</b> first.</div>
       </div>
       <div class="field"><label>Questions</label><textarea id="im-text" style="min-height:190px;font-family:monospace;font-size:13px" placeholder="Paste here…"></textarea></div>
@@ -500,8 +502,8 @@
     const push=()=>{ if(cur && cur.stem) items.push(cur); cur=null; };
     for(const raw of lines){
       const line=raw.trim(); if(!line) continue; let mm;
-      if(mm=line.match(/^\[subject\]\s*(.+)$/i)){ curSub=mm[1].trim(); continue; }
-      if(mm=line.match(/^\[grade\]\s*(.+)$/i)){ curGrade=mm[1].trim(); continue; }
+      if(mm=line.match(/^\[subject\]\s*(.*)$/i)){ if(mm[1].trim()) curSub=mm[1].trim(); continue; }
+      if(mm=line.match(/^\[grade\]\s*(.*)$/i)){ curGrade=mm[1].trim(); continue; }
       if(mm=line.match(/^Q[:.]\s*(.+)$/i)){ push(); cur={ type:"mcq", subject:curSub, grade:curGrade, stem:mm[1].trim(), choices:[], explanation:null, answer_text:null }; continue; }
       if(mm=line.match(/^W[:.]\s*(.+)$/i)){ push(); cur={ type:"written", subject:curSub, grade:curGrade, stem:mm[1].trim(), choices:[], explanation:null, answer_text:null }; continue; }
       if(mm=line.match(/^(?:E|Explanation)[:.]\s*(.+)$/i)){ if(cur) cur.explanation=mm[1].trim(); continue; }
@@ -523,22 +525,26 @@
     return errs;
   }
   function previewImport(){
+   try{
     const items=parseImport($("im-text").value, $("im-sub").value);
     const msg=$("im-msg"), pv=$("im-preview"); msg.classList.remove("hidden");
-    if(!items.length){ msg.className="msg err"; msg.textContent="Nothing detected — check the format example."; pv.innerHTML=""; return; }
+    if(!items.length){ msg.className="msg err"; msg.textContent="Nothing detected — paste questions or run Auto-read first."; pv.innerHTML=""; return; }
     const errs=importIssues(items);
     msg.className="msg "+(errs.length?"err":"ok");
     msg.textContent=errs.length?`Found ${items.length} question(s); ${errs.length} need a fix:`:`Looks good — ${items.length} question(s) ready.`;
     pv.innerHTML=(errs.length?`<div class="tile" style="font-size:12.5px">${errs.slice(0,8).map(esc).join("<br>")}</div>`:"")+
       items.slice(0,6).map((it,i)=>`<div class="listitem"><div class="grow"><div class="t">${i+1}. ${esc(it.stem)}</div><div class="s">${esc(it.subject||"—")} · ${it.type==="written"?"Written":(it.answer_mode==="multi"?"Multi":"MCQ")}</div></div></div>`).join("")+
       (items.length>6?`<div style="color:var(--muted);font-size:12px;padding:6px">…and ${items.length-6} more</div>`:"");
+    msg.scrollIntoView({behavior:"smooth",block:"nearest"});
+   }catch(e){ const msg=$("im-msg"); if(msg){ msg.classList.remove("hidden"); msg.className="msg err"; msg.textContent="Preview error: "+(e.message||e); } }
   }
   async function runImport(){
     const skip=$("im-skip").checked;
     const items=parseImport($("im-text").value, $("im-sub").value);
+    const readyFigs=aiFigs.filter(f=>f.ans).length;
     const msg=$("im-msg"); msg.classList.remove("hidden");
-    if(!items.length){ msg.className="msg err"; msg.textContent="Nothing to import."; return; }
-    if(importIssues(items).length){ msg.className="msg err"; msg.textContent="Fix the issues shown in Preview first."; previewImport(); return; }
+    if(!items.length && !readyFigs){ msg.className="msg err"; msg.textContent="Nothing to import."; return; }
+    if(items.length && importIssues(items).length){ msg.className="msg err"; msg.textContent="Fix the issues shown in Preview first."; previewImport(); return; }
     $("im-go").disabled=true; msg.className="msg"; msg.textContent="Importing…";
     let existing=new Set();
     if(skip){ const {data}=await client.from("questions").select("stem"); (data||[]).forEach(r=>existing.add((r.stem||"").trim().toLowerCase())); }
@@ -554,7 +560,9 @@
       if(it.type==="mcq" && it.choices.length){ const labels=["ก","ข","ค","ง","จ","ฉ"]; await client.from("choices").insert(it.choices.map((c,idx)=>({question_id:nq.id,label:labels[idx]||String(idx+1),content:c.content,is_correct:!!c.correct,position:idx}))); }
       existing.add(it.stem.trim().toLowerCase()); added++;
     }
-    msg.className="msg ok"; msg.textContent=`Imported ${added} question(s)`+(skipped?`, skipped ${skipped} duplicate(s)`:"")+".";
+    const figAdded=await aiFlushFigs(subByName);
+    if(figAdded){ aiFigs=aiFigs.filter(f=>!f.ans); renderAiFigs(); }
+    msg.className="msg ok"; msg.textContent=`Imported ${added+figAdded} question(s)`+(skipped?`, skipped ${skipped} duplicate(s)`:"")+(figAdded?` (incl. ${figAdded} figure)`:"")+".";
     $("im-go").disabled=false; loadQ();
   }
 
@@ -1006,7 +1014,13 @@
   }
 
   /* ---------- AI AUTO-IMPORT ---------- */
-  const AI_PROMPT = "You are reading one page of a Thai school multiple-choice exam. Extract EVERY question on the page into this EXACT plain-text format and nothing else:\n\nQ: <full question text on one line>\nก) <choice text>\nข) <choice text>\nค) <choice text>\nง) <choice text>\n\nRules:\n- Put a * directly before the correct choice, e.g. *ง) ...\n- If handwriting or marks reveal the answer, use that; otherwise choose the most likely answer.\n- Use ก ข ค ง จ for the answer options. If the question itself lists items A,B,C,D,E keep them INSIDE the Q: line.\n- For a written (non-choice) question use 'W: <question>' then 'ANSWER: <answer>'.\n- Separate questions with one blank line. Output ONLY the formatted questions, no commentary, no code fences.";
+  let aiFigs=[];
+  const AI_LABELS=["ก","ข","ค","ง","จ","ฉ"];
+  const AI_PROMPT = "You are reading ONE page of a Thai school exam. Return ONLY a JSON object (no commentary, no code fences) shaped as {\"q\":[ ... ]}, listing every question on the page in order. Each item is ONE of:\n"
+    + "- A text/table question answerable from words alone: {\"k\":\"t\",\"sub\":\"<subject>\",\"gr\":\"<grade e.g. M1 or empty>\",\"stem\":\"<full question; write any small table out inline>\",\"ch\":[\"choice1\",\"choice2\",...],\"ans\":<0-based index of correct choice, or -1 if unknown>}\n"
+    + "- A written/short-answer question: {\"k\":\"t\",\"w\":1,\"sub\":..,\"gr\":..,\"stem\":\"..\",\"awr\":\"<answer>\"}\n"
+    + "- A figure question that NEEDS a picture/diagram/graph/geometry to answer: {\"k\":\"f\",\"sub\":..,\"gr\":..,\"y0\":<top of the whole question as a 0-1 fraction of page height>,\"y1\":<bottom as 0-1 fraction>,\"nch\":<number of choices 2-6>,\"ans\":<0-based correct index or -1>}\n"
+    + "Rules: choices follow ก ข ค ง order. Keep any A/B/C/D items that belong to the question text INSIDE stem. Honor handwritten answer marks. For figure questions, y0/y1 must span the entire question including its picture and its choices. Output ONLY the JSON object.";
   function aimsg(t){ const s=$("ai-keymsg"); if(!s)return; s.className="msg"; s.textContent=t; s.classList.remove("hidden"); }
   async function saveAiKeys(){
     const g=$("ai-gem").value.trim(), c=$("ai-cla").value.trim();
@@ -1021,33 +1035,75 @@
     else throw new Error("Please choose a PDF or an image.");
     return out;
   }
+  function cropRegion(src,y0,y1){ const h=Math.max(1,Math.round(y1-y0)); const c=document.createElement("canvas"); c.width=src.width; c.height=h; c.getContext("2d").drawImage(src,0,Math.round(y0),src.width,h,0,0,src.width,h); return c; }
   async function aiCallGemini(key,b64,prompt){
     const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(key),{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ contents:[{ parts:[{text:prompt},{inline_data:{mime_type:"image/jpeg",data:b64}}] }] }) });
     const j=await res.json(); if(j.error) throw new Error(j.error.message||"Gemini error");
     const cand=(j.candidates||[])[0]||{}; const parts=((cand.content||{}).parts)||[]; return parts.map(p=>p.text||"").join("");
   }
   async function aiCallClaude(key,b64,prompt){
-    const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}, body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:2000, messages:[{ role:"user", content:[{type:"text",text:prompt},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}}] }] }) });
+    const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}, body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:3000, messages:[{ role:"user", content:[{type:"text",text:prompt},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}}] }] }) });
     const j=await res.json(); if(j.error) throw new Error((j.error.message)||"Claude error");
     return (j.content||[]).map(p=>p.text||"").join("");
   }
+  function aiParse(raw){ let t=(raw||"").replace(/```[a-z]*\n?/gi,"").trim(); const a=t.indexOf("{"), b=t.lastIndexOf("}"); if(a>=0&&b>a) t=t.slice(a,b+1); return JSON.parse(t); }
   async function aiExtract(){
     const prov=$("ai-prov").value; const set=t=>{ const s=$("ai-stat"); if(s) s.textContent=t; };
     const key = prov==="claude" ? (appConfig.claude_key||"") : (appConfig.gemini_key||"");
     if(!key){ set("No "+(prov==="claude"?"Claude":"Gemini")+" key saved yet — add it in You → AI auto-import."); return; }
     const f=$("ai-file").files[0]; if(!f){ set("Choose a PDF or photo first."); return; }
+    const def=$("im-sub").value||"";
     try{
-      set("Loading file…"); const canvases=await aiLoadCanvases(f); let out="";
+      set("Loading file…"); const canvases=await aiLoadCanvases(f); let out=""; aiFigs=[]; let txtN=0;
       for(let i=0;i<canvases.length;i++){ set("Reading page "+(i+1)+"/"+canvases.length+" with "+(prov==="claude"?"Claude":"Gemini")+"…");
         const b64=canvases[i].toDataURL("image/jpeg",0.85).split(",")[1];
-        let txt=""; try{ txt = prov==="claude" ? await aiCallClaude(key,b64,AI_PROMPT) : await aiCallGemini(key,b64,AI_PROMPT); }
-        catch(e){ set("AI error: "+(e.message||e)+" — if it mentions CORS/blocked, the browser can't call this provider directly; use the chat workflow or Gemini instead."); return; }
-        txt=(txt||"").replace(/```[a-z]*\n?/gi,"").trim(); if(txt) out += (out?"\n\n":"")+txt;
+        let raw=""; try{ raw = prov==="claude" ? await aiCallClaude(key,b64,AI_PROMPT) : await aiCallGemini(key,b64,AI_PROMPT); }
+        catch(e){ set("AI error: "+(e.message||e)+" — if it mentions CORS/blocked, the browser can't call this provider directly; use Gemini or the chat workflow."); return; }
+        let parsed=null; try{ parsed=aiParse(raw); }catch(_){ parsed=null; }
+        if(parsed && Array.isArray(parsed.q)){
+          const H=canvases[i].height;
+          for(const it of parsed.q){
+            if(it.k==="f"){ const y0=Math.max(0,Math.min(1,it.y0||0))*H, y1=Math.max(0,Math.min(1,it.y1==null?1:it.y1))*H; if(y1-y0<8) continue;
+              aiFigs.push({ canvas:cropRegion(canvases[i],y0,y1), count:Math.max(2,Math.min(6,it.nch||4)), ans:(it.ans>=0?AI_LABELS[it.ans]:null), sub:it.sub||def, gr:it.gr||null }); }
+            else { const sub=it.sub||def, gr=it.gr||""; let blk="[Subject] "+sub+"\n[Grade] "+gr+"\n"; if(it.w){ blk+="W: "+(it.stem||"")+"\nANSWER: "+(it.awr||"")+"\n"; } else { blk+="Q: "+(it.stem||"")+"\n"; (it.ch||[]).forEach((c,idx)=>{ blk+=((it.ans===idx)?"*":"")+(AI_LABELS[idx]||String(idx+1))+") "+c+"\n"; }); } out+=(out?"\n":"")+blk+"\n"; txtN++; }
+          }
+        } else { out += (out?"\n\n":"") + (raw||"").replace(/```[a-z]*\n?/gi,"").trim(); }
       }
-      if(!out){ set("The AI returned nothing readable. Try a clearer scan."); return; }
-      $("im-text").value=out; set("Done — read "+canvases.length+" page(s). Check the box below, fix answers, then Import.");
+      $("im-text").value=out; renderAiFigs();
+      set("Done — "+txtN+" text question(s) below"+(aiFigs.length?(" and "+aiFigs.length+" figure question(s) auto-cropped"):"")+". Check answers, then Import.");
       previewImport();
     }catch(e){ set("Failed: "+(e.message||e)); }
+  }
+  function renderAiFigs(){
+    const box=$("ai-figs"); if(!box) return;
+    if(!aiFigs.length){ box.innerHTML=""; return; }
+    box.innerHTML="<div style=\"font-size:12.5px;font-weight:600;margin:4px 0 6px\">🖼 Figure questions (auto-cropped)</div>"+aiFigs.map((fg,i)=>{
+      const tw=Math.min(fg.canvas.width,260), th=Math.max(1,Math.round(fg.canvas.height*(tw/fg.canvas.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(fg.canvas,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
+      const letters=AI_LABELS.slice(0,fg.count).map(L=>`<button onclick="aiFigAns(${i},'${L}')" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);font-size:12px;background:${fg.ans===L?'var(--accent)':'transparent'};color:${fg.ans===L?'#fff':'var(--text)'}">${L}</button>`).join(" ");
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:8px;margin-bottom:8px"><img src="${url}" style="width:100%;border-radius:6px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="font-size:12px;color:var(--muted)">Answer:</span>${letters}<button onclick="aiFigCount(${i})" style="padding:4px 8px;border-radius:7px;border:1px solid var(--border);font-size:11px;background:transparent;color:var(--muted)">${fg.count} choices</button><button onclick="aiFigDrop(${i})" style="margin-left:auto;padding:4px 8px;border-radius:7px;border:1px solid var(--border);font-size:11px;background:transparent;color:var(--danger,#e5484d)">✕</button></div></div>`;
+    }).join("");
+  }
+  function aiFigAns(i,L){ aiFigs[i].ans=L; renderAiFigs(); }
+  function aiFigCount(i){ aiFigs[i].count=aiFigs[i].count>=6?2:aiFigs[i].count+1; const order=AI_LABELS; if(aiFigs[i].ans&&order.indexOf(aiFigs[i].ans)>=aiFigs[i].count) aiFigs[i].ans=null; renderAiFigs(); }
+  function aiFigDrop(i){ aiFigs.splice(i,1); renderAiFigs(); }
+  async function aiFlushFigs(subByName){
+    const ready=aiFigs.filter(f=>f.ans); let added=0;
+    for(let k=0;k<ready.length;k++){ const fg=ready[k];
+      try{
+        let sid=subByName[(fg.sub||"").toLowerCase()];
+        if(!sid && fg.sub){ const {data}=await client.from("subjects").insert({name:fg.sub,color:"#7c4dff",default_time_per_q:60}).select("*").single(); if(data){ sid=data.id; subByName[fg.sub.toLowerCase()]=sid; state.subjects.push(data); } }
+        sid=sid||state.subjects[0]?.id||null;
+        const blob=await canvasToBlob(fg.canvas); if(!blob) continue;
+        const path=`${me.id}/${Date.now()}_f${k}.jpg`;
+        const up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
+        const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
+        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade:fg.gr||null, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id }).select("id").single();
+        if(error||!nq) continue;
+        await client.from("choices").insert(AI_LABELS.slice(0,fg.count).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:L===fg.ans,position:idx})));
+        added++;
+      }catch(e){}
+    }
+    return added;
   }
   function bkmsg(kind,t){ const m=$("bk-msg"); if(!m)return; m.className="msg "+(kind||""); m.textContent=t; m.classList.remove("hidden"); }
   async function exportData(){
