@@ -342,8 +342,8 @@
   async function viewDashboard(v){
     const qCount = await client.from("questions").select("id",{count:"exact",head:true}).eq("owner_id", state.bankOwner);
     const n = qCount.count||0;
-    const {data:atts}=await client.from("attempts").select("created_at");
-    const ansCount = await client.from("answers").select("id",{count:"exact",head:true});
+    const {data:atts}=await client.from("attempts").select("created_at").eq("user_id", state.bankOwner);
+    const ansCount = await client.from("answers").select("id",{count:"exact",head:true}).eq("user_id", state.bankOwner);
     const streak=computeStreak((atts||[]).map(a=>a.created_at));
     v.innerHTML = `
       <div class="tile pcard">
@@ -1361,7 +1361,7 @@
     const sub=$("qz-sub")?.value||"", st=$("qz-st")?.value||"", grade=$("qz-grade")?.value||"";
     const count=parseInt($("qz-count")?.value||"10",10), perQ=parseInt($("qz-time")?.value||"60",10);
     let ids=null;
-    if(mistakes){ const {data:wrong}=await client.from("answers").select("question_id").eq("is_correct",false);
+    if(mistakes){ const {data:wrong}=await client.from("answers").select("question_id").eq("is_correct",false).eq("user_id",me.id);
       ids=[...new Set((wrong||[]).map(w=>w.question_id).filter(Boolean))]; if(!ids.length){ qzmsg("No past mistakes yet — take a quiz first."); return; } }
     let qy=client.from("questions").select("*");
     if(sub) qy=qy.eq("subject_id",sub); if(st) qy=qy.eq("subtopic_id",st); if(grade) qy=qy.eq("grade",grade); if(ids) qy=qy.in("id",ids);
@@ -1449,8 +1449,8 @@
     let correct=0; const rows=[]; const duration=Math.round((Date.now()-quiz.startedAt)/1000);
     quiz.items.forEach(it=>{ const q=it.q, a=quiz.answers[q.id]||{}; const ok=isCorrect(q,it.choices,a); if(ok)correct++;
       rows.push({ question_id:q.id, subject_id:q.subject_id, subtopic_id:q.subtopic_id, chosen:a.chosen||null, written_text:a.written||null, is_correct:ok, self_graded:!!a.self_graded, time_sec:0 }); });
-    try{ const {data:att,error}=await client.from("attempts").insert({ mode:quiz.mode, total:quiz.items.length, correct, score:correct, duration_sec:duration }).select("id").single();
-      if(!error && att) await client.from("answers").insert(rows.map(r=>({...r, attempt_id:att.id}))); }catch(e){}
+    try{ const {data:att,error}=await client.from("attempts").insert({ mode:quiz.mode, total:quiz.items.length, correct, score:correct, duration_sec:duration, user_id:me.id }).select("id").single();
+      if(!error && att) await client.from("answers").insert(rows.map(r=>({...r, attempt_id:att.id, user_id:me.id}))); }catch(e){}
     const result={ total:quiz.items.length, correct, items:quiz.items.map(it=>({q:it.q, choices:it.choices, a:quiz.answers[it.q.id]||{}})) };
     try{ tgSendReport(quiz.mode, result); }catch(e){}
     quiz=null; $("nav").style.display="flex"; showResults(result);
@@ -1475,10 +1475,15 @@
   async function viewStats(v){
     v.innerHTML=`<div class="empty">Loading…</div>`;
     const [{data:answers},{data:attempts}] = await Promise.all([
-      client.from("answers").select("is_correct,subject_id,created_at"),
-      client.from("attempts").select("created_at,total")
+      client.from("answers").select("is_correct,subject_id,created_at").eq("user_id", state.bankOwner),
+      client.from("attempts").select("created_at,total").eq("user_id", state.bankOwner)
     ]);
-    if(!answers||!answers.length){ v.innerHTML=`<div class="empty">No quiz data yet.<br>Take a quiz to see your stats!</div>`; return; }
+    const owners=[{id:me.id,name:"Me"}].concat(state.kids||[]);
+    const ownerSel = (profile.role!=="child" && (state.kids||[]).length)
+      ? `<div class="row" style="margin:6px 0 12px"><select id="st-owner" style="flex:1">${owners.map(o=>`<option value="${o.id}" ${o.id===state.bankOwner?"selected":""}>${o.id===me.id?"📊 My stats":"👤 "+esc(o.name)+"’s stats"}</option>`).join("")}</select></div>`
+      : "";
+    const wireStOwner=()=>{ const so=$("st-owner"); if(so) so.onchange=(e)=>{ state.bankOwner=e.target.value; viewStats(v); }; };
+    if(!answers||!answers.length){ v.innerHTML=ownerSel+`<div class="empty">No quiz data yet.<br>Take a quiz to see stats!</div>`; wireStOwner(); return; }
     const total=answers.length, correct=answers.filter(a=>a.is_correct).length; const bySub={};
     answers.forEach(a=>{ const s=subjectById(a.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(a.is_correct)bySub[n].c++; });
     const entries=Object.entries(bySub).map(([n,d])=>[n,d.c,d.t,d.t?Math.round(d.c/d.t*100):0]).sort((a,b)=>a[3]-b[3]);
@@ -1487,7 +1492,7 @@
     const last=Object.entries(days).sort().slice(-14);
     const quizzes=(attempts||[]).length, activeDays=Object.keys(days).length;
     const maxN=Math.max(1,...last.map(([,n])=>n));
-    v.innerHTML=`
+    v.innerHTML=ownerSel+`
       <div class="grid2">
         <div class="stat"><div class="n">${Math.round(correct/total*100)}%</div><div class="l">Overall accuracy</div></div>
         <div class="stat"><div class="n">${total}</div><div class="l">Questions answered</div></div>
@@ -1501,6 +1506,7 @@
       <div class="tile">${entries.map(e=>barRow(e[0],e[1],e[2])).join("")}</div>
       <div class="sectiontitle">Recent activity</div>
       <div class="tile">${last.length?last.map(([d,n])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--muted);width:48px">${esc(d.slice(5))}</span><div style="flex:1;background:var(--line);border-radius:4px;height:14px;overflow:hidden"><div style="height:100%;width:${Math.round(n/maxN*100)}%;background:var(--accent)"></div></div><span style="font-size:11px;color:var(--muted);width:26px;text-align:right">${n}</span></div>`).join(""):'<div class="empty">No attempts yet.</div>'}</div>`;
+    wireStOwner();
   }
 
   /* ---------- NOTEPAD ---------- */
@@ -1594,8 +1600,8 @@
     const items=vocabState.items; const total=items.length, correct=items.filter(i=>i.known).length;
     let vid=null; try{ vid=await vocabSubjectId(); }catch(e){}
     const duration=Math.round((Date.now()-vocabState.startedAt)/1000);
-    try{ const {data:att,error}=await client.from("attempts").insert({mode:"vocab",total,correct,score:correct,duration_sec:duration}).select("id").single();
-      if(!error&&att) await client.from("answers").insert(items.map(i=>({attempt_id:att.id,question_id:i.w.id,subject_id:vid,subtopic_id:null,chosen:null,written_text:null,is_correct:!!i.known,self_graded:true,time_sec:0}))); }catch(e){}
+    try{ const {data:att,error}=await client.from("attempts").insert({mode:"vocab",total,correct,score:correct,duration_sec:duration,user_id:me.id}).select("id").single();
+      if(!error&&att) await client.from("answers").insert(items.map(i=>({attempt_id:att.id,question_id:i.w.id,subject_id:vid,subtopic_id:null,chosen:null,written_text:null,is_correct:!!i.known,self_graded:true,time_sec:0,user_id:me.id}))); }catch(e){}
     try{ tgSendReport("vocab",{ total, correct, items: items.map(i=>({q:{subject_id:vid,type:"written",answer_text:i.w.th,stem:i.w.en},choices:[],a:{correct:!!i.known,self_graded:true}})) }); }catch(e){}
     const pct=Math.round(correct/total*100), missed=items.filter(i=>!i.known);
     vocabState=null; $("nav").style.display="flex"; state.route="quiz"; $("title").textContent="Vocab results";
