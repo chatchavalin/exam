@@ -1319,23 +1319,50 @@
   function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
   let quiz=null, timerInt=null;
 
+  /* tap-friendly pickers (replace dropdowns): render buttons backed by a hidden
+     input of the same id, so existing .value reads keep working unchanged. */
+  function qzTap(id, opts, cur, cls){
+    const c = cur==null?"":String(cur);
+    return `<input type="hidden" id="${id}" value="${c}">`
+      + `<div class="${cls} tapgroup" data-for="${id}">`
+      + opts.map(o=>{ const v=o.v==null?"":String(o.v); return `<button type="button" data-v="${v}" class="${v===c?'on':''}">${o.label}</button>`; }).join("")
+      + `</div>`;
+  }
+  function qzWireTaps(scope, onChange){
+    scope.querySelectorAll(".tapgroup").forEach(g=>{
+      const id=g.dataset.for; const input=scope.querySelector("#"+id);
+      g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+        if(input) input.value=b.dataset.v;
+        g.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+        if(onChange) onChange(id, b.dataset.v);
+      });
+    });
+  }
+  function qzRenderSt(scope, subjectId){
+    const field=scope.querySelector("#qz-st-field"), host=scope.querySelector("#qz-st-host");
+    if(!host) return;
+    const sts=subtopicsOf(subjectId);
+    if(field) field.style.display = sts.length ? "block" : "none";
+    host.innerHTML = qzTap("qz-st", [{v:"",label:"All"}].concat(sts.map(t=>({v:t.id,label:esc(t.name)}))), "", "themebtns");
+    qzWireTaps(host);
+  }
   function viewQuiz(v){
     const subs=state.subjects;
+    const gradeCur=(profile.grade==='P6'||profile.grade==='M2')?profile.grade:"";
+    const subjOpts=[{v:"",label:"All"}].concat(subs.map(s=>({v:s.id,label:esc(s.name)})));
     v.innerHTML = `
       <div class="sectiontitle">New quiz</div>
       <div class="tile">
         <div class="field"><label>Mode</label>
           <div class="themebtns" id="qz-mode" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${["practice","exam","study","flashcard"].map((md,i)=>`<button data-v="${md}" class="${i===0?'on':''}">${cap(md)}</button>`).join("")}</div>
         </div>
-        <div class="field"><label>Subject</label><select id="qz-sub"><option value="">All subjects</option>${subs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
+        <div class="field"><label>Subject</label>${qzTap("qz-sub", subjOpts, "", "themebtns")}</div>
         <button type="button" id="qz-advbtn" onclick="toggleAdv()" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;padding:2px 0;width:auto;margin-bottom:8px">More options ▾</button>
         <div id="qz-adv" class="hidden">
-          <div class="field"><label>Sub-topic</label><select id="qz-st"><option value="">All sub-topics</option></select></div>
-          <div class="field"><label>Grade</label><select id="qz-grade"><option value="">All</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div>
-          <div class="row">
-            <div class="field"><label>Questions</label><select id="qz-count"><option>10</option><option>20</option><option>30</option><option>40</option><option>50</option></select></div>
-            <div class="field" id="qz-time-wrap"><label>Min / question</label><select id="qz-time"><option value="60">1</option><option value="120">2</option><option value="180">3</option><option value="240">4</option><option value="300">5</option></select></div>
-          </div>
+          <div class="field" id="qz-st-field" style="display:none"><label>Sub-topic</label><div id="qz-st-host"></div></div>
+          <div class="field"><label>Grade</label>${qzTap("qz-grade", [{v:"",label:"All"},{v:"P6",label:"P6"},{v:"M2",label:"M2"},{v:"Other",label:"Other"}], gradeCur, "seg")}</div>
+          <div class="field"><label>How many questions?</label>${qzTap("qz-count", [10,20,30,40,50].map(n=>({v:n,label:n})), 10, "seg")}</div>
+          <div class="field" id="qz-time-wrap"><label>Time per question</label>${qzTap("qz-time", [{v:60,label:"1m"},{v:120,label:"2m"},{v:180,label:"3m"},{v:240,label:"4m"},{v:300,label:"5m"}], 60, "seg")}</div>
         </div>
         <div id="qz-msg" class="msg hidden"></div>
         <button class="btn primary" style="width:100%" onclick="startQuiz(false)">Start quiz</button>
@@ -1351,7 +1378,8 @@
     let mode="practice";
     v.querySelectorAll("#qz-mode button").forEach(b=>b.onclick=()=>{ mode=b.dataset.v; v.querySelectorAll("#qz-mode button").forEach(x=>x.classList.toggle("on",x===b)); $("qz-time-wrap").style.display=(mode==='study'||mode==='flashcard')?'none':'block'; });
     v._mode=()=>mode;
-    $("qz-sub").onchange=(e)=>{ $("qz-st").innerHTML=`<option value="">All sub-topics</option>`+subtopicsOf(e.target.value).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join(""); };
+    qzWireTaps(v, (id,val)=>{ if(id==="qz-sub") qzRenderSt(v, val); });
+    qzRenderSt(v, "");
   }
   function qzmsg(t){ const m=$("qz-msg"); if(m){ m.className="msg err"; m.textContent=t; m.classList.remove("hidden"); } }
   function toggleAdv(){ const a=$("qz-adv"), b=$("qz-advbtn"); if(!a) return; const hidden=a.classList.toggle("hidden"); if(b) b.textContent = hidden ? "More options ▾" : "Fewer options ▴"; }
