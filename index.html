@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ExamForge</title>
+<title>ExamForge by Ben</title>
 <meta name="theme-color" content="#7c4dff" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="ExamForge" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -119,7 +123,7 @@
   <!-- AUTH -->
   <div id="screen-auth" class="center">
     <div class="card">
-      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
+      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge <span style="font-weight:400;opacity:.6;font-size:.6em">by Ben</span></span></div>
       <h1 style="font-size:24px;margin-bottom:6px">Sign in</h1>
       <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Sign in with your email and password.</p>
       <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="you@gmail.com" /></div>
@@ -132,7 +136,7 @@
   <!-- SENT -->
   <div id="screen-sent" class="center hidden">
     <div class="card">
-      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
+      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge <span style="font-weight:400;opacity:.6;font-size:.6em">by Ben</span></span></div>
       <h1 style="font-size:24px;margin-bottom:6px">Check your email</h1>
       <p style="color:var(--muted);font-size:14px">Link sent to <b id="sent-to"></b>. Open it on this device.</p>
       <button class="btn ghost" id="back-btn" style="margin-top:8px">Use a different email</button>
@@ -142,7 +146,7 @@
   <!-- PROFILE SETUP -->
   <div id="screen-setup" class="center hidden">
     <div class="card">
-      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge</span></div>
+      <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge <span style="font-weight:400;opacity:.6;font-size:.6em">by Ben</span></span></div>
       <h1 style="font-size:23px;margin-bottom:4px">Set up your profile</h1>
       <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Just a couple of things to personalise your space.</p>
       <div class="field"><label>Your name</label><input id="su-name" placeholder="e.g. Ben" /></div>
@@ -314,7 +318,7 @@
     v.innerHTML = `
       <div class="tile pcard">
         <div class="av">${profile.avatar_url?`<img class="av" src="${profile.avatar_url}">`:initials()}</div>
-        <div><div style="font-family:var(--fd);font-weight:700;font-size:19px">${esc(profile.display_name||"")}</div>
+        <div><div style="color:var(--muted);font-size:12.5px">${greet()},</div><div style="font-family:var(--fd);font-weight:700;font-size:19px">${esc(profile.display_name||"")}</div>
         <span class="chip">${esc(profile.grade||"")}</span></div>
       </div>
       <div class="grid2">
@@ -325,13 +329,22 @@
         <div class="stat"><div class="n">🔥 ${streak}</div><div class="l">Day streak</div></div>
         <div class="stat"><div class="n">${ansCount.count||0}</div><div class="l">Answered</div></div>
       </div>
+      ${n>0?`
+      <div class="sectiontitle">Ready to study</div>
+      <div class="tile">
+        <div style="font-weight:600;margin-bottom:4px">Start a quiz</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Practice, exam, study or flashcards — pick a subject and go.</div>
+        <button class="btn primary" style="width:100%" onclick="go('quiz')">Start quiz</button>
+        <button class="btn ghost sm" style="width:100%;margin-top:8px" onclick="go('bank')">Manage question bank</button>
+      </div>`:`
       <div class="sectiontitle">Get started</div>
       <div class="tile">
         <div style="font-weight:600;margin-bottom:4px">Build your question bank</div>
         <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Add questions one by one, or bulk-import a whole set. Then quizzes and stats unlock as you go.</div>
         <button class="btn primary" onclick="go('bank')">Go to bank</button>
-      </div>`;
+      </div>`}`;
   }
+  function greet(){ const h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
   function computeStreak(dates){
     const days=new Set(dates.map(d=>(d||"").slice(0,10)).filter(Boolean));
     if(!days.size) return 0;
@@ -343,7 +356,7 @@
   }
 
   /* ---------- BANK ---------- */
-  let bankFilter="";
+  let bankFilter="", bankSearch="", bankData=[];
   async function viewBank(v){
     v.innerHTML = `
       <div class="row" style="margin:6px 0 12px">
@@ -351,18 +364,24 @@
         <button class="btn primary" style="flex:none" onclick="openQ()">+ Add</button>
       </div>
       <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects &amp; topics →</button><button class="btn sm ghost" onclick="openImport()">Bulk import →</button><button class="btn sm ghost" onclick="openImageImport()">Image import →</button></div>
+      <input id="bk-search" placeholder="🔍 Search questions…" oninput="bankSearchInput(this.value)" style="width:100%;margin-bottom:10px">
       <div id="qlist"><div class="empty">Loading…</div></div>`;
     $("bk-filter").onchange = (e)=>{ bankFilter=e.target.value; loadQ(); };
     loadQ();
   }
+  function bankSearchInput(v){ bankSearch=(v||"").trim().toLowerCase(); renderBankList(); }
   function go2(name){ if(name==="subjects") viewSubjects($("view")); }
   async function loadQ(){
-    let q = client.from("questions").select("*").order("created_at",{ascending:false}).limit(100);
+    let q = client.from("questions").select("*").order("created_at",{ascending:false}).limit(300);
     if(bankFilter) q = q.eq("subject_id", bankFilter);
-    const { data } = await q;
-    const list=$("qlist");
-    if(!data || !data.length){ list.innerHTML = `<div class="empty">No questions yet. Tap <b>+ Add</b> to create your first.</div>`; return; }
-    list.innerHTML = data.map(qq=>{
+    const { data } = await q; bankData = data||[]; renderBankList();
+  }
+  function renderBankList(){
+    const list=$("qlist"); if(!list) return;
+    let data=bankData;
+    if(bankSearch) data=data.filter(qq=>(((qq.stem||"")+" "+(qq.grade||"")).toLowerCase()).includes(bankSearch));
+    if(!data.length){ list.innerHTML = `<div class="empty">${bankSearch?"No questions match your search.":"No questions yet. Tap <b>+ Add</b> to create your first."}</div>`; return; }
+    list.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">${data.length} question${data.length!==1?"s":""}${bankSearch?" found":""}</div>` + data.map(qq=>{
       const sub=subjectById(qq.subject_id);
       return `<div class="listitem">
         <div class="dot" style="background:${sub?sub.color:'#ccc'}"></div>
@@ -474,27 +493,34 @@
     const m=document.createElement("div"); m.className="modal";
     m.innerHTML=`<div class="sheet">
       <button class="close" onclick="closeModal()">×</button>
-      <h3>Bulk import</h3>
-      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Paste many questions at once, then tap <b>Preview</b> to check and <b>Import</b>.</p>
-      <div class="field"><label>Default subject (used if text has no [Subject])</label><select id="im-sub"><option value="">— choose —</option>${subsOpt}</select></div>
-      <div class="field"><label>Or load a PDF (we'll pull out the text)</label><input id="im-pdf" type="file" accept="application/pdf" onchange="handlePdf(event)"><div id="im-pdfstat" style="font-size:12px;color:var(--muted);margin-top:6px"></div></div>
-      <div style="background:rgba(124,77,255,.06);border:1px solid var(--border);border-radius:10px;padding:12px;margin:0 0 12px">
-        <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">⚡ Auto-read with AI</div>
-        <div class="row"><div class="field" style="flex:1"><label>AI</label><select id="ai-prov"><option value="gemini">Gemini (free)</option><option value="claude">Claude (paid)</option></select></div><div class="field" style="flex:1"><label>PDF or photo</label><input id="ai-file" type="file" accept="image/*,application/pdf"></div></div>
-        <button class="btn primary" style="padding:8px 14px;font-size:13px" onclick="aiExtract()">Extract questions</button>
+      <h3>Add questions</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 14px">Let AI read an exam file, or paste questions yourself — then check the list and tap <b>Import</b>.</p>
+      <div style="background:rgba(124,77,255,.06);border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:14px">
+        <div style="font-weight:600;font-size:14px;margin-bottom:9px">⚡ 1 · Auto-read a file</div>
+        <div class="row"><div class="field" style="flex:1"><label>AI</label><select id="ai-prov"><option value="gemini">Gemini (free)</option><option value="claude">Claude (paid)</option></select></div><div class="field" style="flex:1"><label>Exam PDF or photo</label><input id="ai-file" type="file" accept="image/*,application/pdf"></div></div>
+        <button class="btn primary" id="ai-go" style="padding:9px 16px;font-size:13.5px" onclick="aiExtract()">Extract questions</button>
         <div id="ai-stat" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
-        <div id="ai-figs" style="margin-top:10px"></div>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Reads the file and fills the box below — then Preview &amp; Import as usual. Add your API key in <b>You → AI auto-import</b> first.</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Fills the box below. Need a key? Add one in <b>You → AI auto-import</b>.</div>
       </div>
-      <div class="field"><label>Questions</label><textarea id="im-text" style="min-height:190px;font-family:monospace;font-size:13px" placeholder="Paste here…"></textarea></div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="im-skip" checked style="width:auto"> Skip questions already in the bank</label>
-      <details style="margin:10px 0"><summary style="font-size:13px;color:var(--accent)">Show format example</summary><pre style="white-space:pre-wrap;font-size:12px;background:var(--bg);padding:10px;border-radius:8px;margin-top:8px">${esc(sample)}</pre><div style="font-size:12px;color:var(--muted)"><b>[Subject] Name</b> / <b>[Grade] P6</b> set the current subject &amp; grade. <b>Q:</b> starts a multiple-choice question; each choice line starts with a letter and bracket like <b>A)</b>, and the correct one(s) get a <b>*</b> in front (mark several for select-all). <b>E:</b> adds an explanation. For written questions use <b>W:</b> then <b>ANSWER:</b>. Separate questions with a blank line.</div></details>
+      <div class="field"><label>2 · Questions <span style="color:var(--muted);font-weight:400">— AI fills this, or paste your own</span></label><textarea id="im-text" oninput="schedulePreview()" style="min-height:170px;font-family:monospace;font-size:13px" placeholder="Paste here, or use Auto-read above…"></textarea></div>
+      <details style="margin:2px 0 12px"><summary style="font-size:13px;color:var(--accent)">More options &amp; format help</summary>
+        <div class="field" style="margin-top:10px"><label>Default subject (if text has no [Subject])</label><select id="im-sub" onchange="schedulePreview()"><option value="">— choose —</option>${subsOpt}</select></div>
+        <div class="field"><label>Load a digital PDF (free — text-based PDFs only)</label><input id="im-pdf" type="file" accept="application/pdf" onchange="handlePdf(event)"><div id="im-pdfstat" style="font-size:12px;color:var(--muted);margin-top:6px"></div></div>
+        <pre style="white-space:pre-wrap;font-size:12px;background:var(--bg);padding:10px;border-radius:8px">${esc(sample)}</pre>
+        <div style="font-size:12px;color:var(--muted)"><b>[Subject] Name</b> / <b>[Grade] P6</b> set subject &amp; grade. <b>Q:</b> starts a question; each choice line starts like <b>ก)</b>, and the correct one(s) get a <b>*</b>. <b>W:</b> + <b>ANSWER:</b> for written. Blank line between questions.</div>
+      </details>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px"><input type="checkbox" id="im-skip" checked style="width:auto"> Skip questions already in the bank</label>
+      <div style="font-weight:600;font-size:14px;margin:4px 0 8px">3 · Review &amp; import</div>
       <div id="im-msg" class="msg hidden"></div>
+      <div id="ai-figs" style="margin-bottom:8px"></div>
       <div id="im-preview"></div>
-      <div class="row" style="margin-top:8px"><button class="btn" onclick="previewImport()">Preview</button><button class="btn primary" id="im-go" onclick="runImport()">Import</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="im-go" onclick="runImport()" style="width:100%">Import</button></div>
     </div>`;
     $("modal-root").appendChild(m);
+    previewImport();
   }
+  let _impPvT=null;
+  function schedulePreview(){ clearTimeout(_impPvT); _impPvT=setTimeout(()=>{ if($("im-text")) previewImport(); },400); }
   function parseImport(text, defSubject){
     const lines=(text||"").replace(/\r/g,"").split("\n");
     const items=[]; let cur=null, curSub=defSubject||"", curGrade="";
@@ -527,15 +553,20 @@
   function previewImport(){
    try{
     const items=parseImport($("im-text").value, $("im-sub").value);
+    const figReady=aiFigs.filter(f=>f.ans).length;
     const msg=$("im-msg"), pv=$("im-preview"); msg.classList.remove("hidden");
-    if(!items.length){ msg.className="msg err"; msg.textContent="Nothing detected — paste questions or run Auto-read first."; pv.innerHTML=""; return; }
+    if(!items.length){
+      if(figReady){ msg.className="msg ok"; msg.textContent=`${figReady} figure question(s) ready to import.`; pv.innerHTML=""; return; }
+      msg.className="msg"; msg.style.color="var(--muted)"; msg.textContent="No questions yet — auto-read a file above, or paste them in."; pv.innerHTML=""; return;
+    }
+    msg.style.color="";
     const errs=importIssues(items);
     msg.className="msg "+(errs.length?"err":"ok");
-    msg.textContent=errs.length?`Found ${items.length} question(s); ${errs.length} need a fix:`:`Looks good — ${items.length} question(s) ready.`;
+    const fig=figReady?` + ${figReady} figure`:"";
+    msg.textContent=errs.length?`Found ${items.length} question(s)${fig}; ${errs.length} need a fix:`:`Looks good — ${items.length} question(s)${fig} ready.`;
     pv.innerHTML=(errs.length?`<div class="tile" style="font-size:12.5px">${errs.slice(0,8).map(esc).join("<br>")}</div>`:"")+
       items.slice(0,6).map((it,i)=>`<div class="listitem"><div class="grow"><div class="t">${i+1}. ${esc(it.stem)}</div><div class="s">${esc(it.subject||"—")} · ${it.type==="written"?"Written":(it.answer_mode==="multi"?"Multi":"MCQ")}</div></div></div>`).join("")+
       (items.length>6?`<div style="color:var(--muted);font-size:12px;padding:6px">…and ${items.length-6} more</div>`:"");
-    msg.scrollIntoView({behavior:"smooth",block:"nearest"});
    }catch(e){ const msg=$("im-msg"); if(msg){ msg.classList.remove("hidden"); msg.className="msg err"; msg.textContent="Preview error: "+(e.message||e); } }
   }
   async function runImport(){
@@ -563,6 +594,7 @@
     const figAdded=await aiFlushFigs(subByName);
     if(figAdded){ aiFigs=aiFigs.filter(f=>!f.ans); renderAiFigs(); }
     msg.className="msg ok"; msg.textContent=`Imported ${added+figAdded} question(s)`+(skipped?`, skipped ${skipped} duplicate(s)`:"")+(figAdded?` (incl. ${figAdded} figure)`:"")+".";
+    if(added+figAdded>0){ $("im-text").value=""; aiFigs=[]; renderAiFigs(); const pv=$("im-preview"); if(pv) pv.innerHTML=""; const af=$("ai-file"); if(af) af.value=""; }
     $("im-go").disabled=false; loadQ();
   }
 
@@ -866,6 +898,7 @@
       </div>
       <div id="subjlist"></div>`;
     renderSubjects();
+    (async()=>{ try{ const {data}=await client.from("questions").select("subject_id"); const c={}; (data||[]).forEach(r=>{ if(r.subject_id) c[r.subject_id]=(c[r.subject_id]||0)+1; }); state.qCounts=c; renderSubjects(); }catch(e){} })();
   }
   function renderSubjects(){
     const box=$("subjlist"); if(!box) return;
@@ -873,7 +906,7 @@
       <div class="tile">
         <div class="listitem" style="border:none;padding-top:0">
           <div class="dot" style="background:${s.color}"></div>
-          <div class="grow"><div class="t">${esc(s.name)}</div><div class="s">${subtopicsOf(s.id).length} sub-topics</div></div>
+          <div class="grow"><div class="t">${esc(s.name)}</div><div class="s">${(state.qCounts&&state.qCounts[s.id])||0} question(s) · ${subtopicsOf(s.id).length} sub-topic(s)</div></div>
           <button class="btn sm danger" onclick="delSubject('${s.id}')">Delete</button>
         </div>
         <div style="margin:6px 0 0">${subtopicsOf(s.id).map(t=>`<span class="chip" style="margin:0 6px 6px 0">${esc(t.name)} <span onclick="delTopic('${t.id}')" style="cursor:pointer;color:var(--danger)">×</span></span>`).join("")}</div>
@@ -938,7 +971,7 @@
         <div id="bk-msg" class="msg hidden"></div>
       </div>
       <div class="sectiontitle">Install on tablet</div>
-      <div class="tile"><div style="font-size:13px;color:var(--muted)">In your browser menu, tap <b>Add to Home Screen</b> to use ExamForge like a real app — full screen, with its own icon.</div></div>
+      <div class="tile"><div style="font-size:13px;color:var(--muted)">In your browser menu, tap <b>Add to Home Screen</b> to use ExamForge by Ben like a real app — full screen, with its own icon.</div></div>
       <div class="sectiontitle">Account</div>
       <div class="tile"><button class="btn sm" onclick="changePassword()">Change password</button> <button class="btn danger" onclick="signOut()">Sign out</button></div>
       <div id="se-msg" class="msg hidden"></div>`;
@@ -1001,7 +1034,7 @@
     if(!token||!chats.length){ tgmsg("err","Enter the bot token and at least one chat ID first."); return; }
     appConfig.telegram_token=token; tgmsg("","Sending test…");
     let ok=0, fail=0, lastErr="";
-    for(const c of chats){ const r=await tgSend(c, "✅ ExamForge test — reports are working!"); if(r.ok) ok++; else { fail++; lastErr=r.error||""; } }
+    for(const c of chats){ const r=await tgSend(c, "✅ ExamForge by Ben test — reports are working!"); if(r.ok) ok++; else { fail++; lastErr=r.error||""; } }
     tgmsg(fail?"err":"ok", "Sent to "+ok+"/"+chats.length+"."+(fail?(" Failed "+fail+" ("+lastErr+"). Make sure each parent has tapped Start on the bot."):""));
   }
   async function tgSendReport(mode, result){
@@ -1009,7 +1042,7 @@
     const pct=Math.round(result.correct/result.total*100); const bySub={};
     result.items.forEach(it=>{ const s=subjectById(it.q.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(isCorrect(it.q,it.choices,it.a))bySub[n].c++; });
     const lines=Object.entries(bySub).map(([n,d])=>"• "+esc(n)+": "+d.c+"/"+d.t).join("\n");
-    const text="📚 <b>ExamForge</b>\n"+esc(profile.display_name||profile.email)+" finished a "+esc(mode)+" quiz.\nScore: <b>"+result.correct+"/"+result.total+" ("+pct+"%)</b>\n"+lines;
+    const text="📚 <b>ExamForge by Ben</b>\n"+esc(profile.display_name||profile.email)+" finished a "+esc(mode)+" quiz.\nScore: <b>"+result.correct+"/"+result.total+" ("+pct+"%)</b>\n"+lines;
     for(const c of chats){ tgSend(c, text); }
   }
 
@@ -1053,6 +1086,8 @@
     if(!key){ set("No "+(prov==="claude"?"Claude":"Gemini")+" key saved yet — add it in You → AI auto-import."); return; }
     const f=$("ai-file").files[0]; if(!f){ set("Choose a PDF or photo first."); return; }
     const def=$("im-sub").value||"";
+    const btn=$("ai-go"); const restore=()=>{ if(btn){ btn.disabled=false; btn.textContent="Extract questions"; } };
+    if(btn){ btn.disabled=true; btn.textContent="Reading…"; }
     try{
       set("Loading file…"); const canvases=await aiLoadCanvases(f); let out=""; aiFigs=[]; let txtN=0;
       for(let i=0;i<canvases.length;i++){ set("Reading page "+(i+1)+"/"+canvases.length+" with "+(prov==="claude"?"Claude":"Gemini")+"…");
@@ -1064,7 +1099,7 @@
           const H=canvases[i].height;
           for(const it of parsed.q){
             if(it.k==="f"){ const y0=Math.max(0,Math.min(1,it.y0||0))*H, y1=Math.max(0,Math.min(1,it.y1==null?1:it.y1))*H; if(y1-y0<8) continue;
-              aiFigs.push({ canvas:cropRegion(canvases[i],y0,y1), count:Math.max(2,Math.min(6,it.nch||4)), ans:(it.ans>=0?AI_LABELS[it.ans]:null), sub:it.sub||def, gr:it.gr||null }); }
+              aiFigs.push({ src:canvases[i], y0:Math.round(y0), y1:Math.round(y1), count:Math.max(2,Math.min(6,it.nch||4)), ans:(it.ans>=0?AI_LABELS[it.ans]:null), sub:it.sub||def, gr:it.gr||null }); }
             else { const sub=it.sub||def, gr=it.gr||""; let blk="[Subject] "+sub+"\n[Grade] "+gr+"\n"; if(it.w){ blk+="W: "+(it.stem||"")+"\nANSWER: "+(it.awr||"")+"\n"; } else { blk+="Q: "+(it.stem||"")+"\n"; (it.ch||[]).forEach((c,idx)=>{ blk+=((it.ans===idx)?"*":"")+(AI_LABELS[idx]||String(idx+1))+") "+c+"\n"; }); } out+=(out?"\n":"")+blk+"\n"; txtN++; }
           }
         } else { out += (out?"\n\n":"") + (raw||"").replace(/```[a-z]*\n?/gi,"").trim(); }
@@ -1072,20 +1107,55 @@
       $("im-text").value=out; renderAiFigs();
       set("Done — "+txtN+" text question(s) below"+(aiFigs.length?(" and "+aiFigs.length+" figure question(s) auto-cropped"):"")+". Check answers, then Import.");
       previewImport();
+      const r=(aiFigs.length?$("ai-figs"):$("im-msg")); if(r) r.scrollIntoView({behavior:"smooth",block:"center"});
     }catch(e){ set("Failed: "+(e.message||e)); }
+    finally{ restore(); }
   }
   function renderAiFigs(){
     const box=$("ai-figs"); if(!box) return;
     if(!aiFigs.length){ box.innerHTML=""; return; }
-    box.innerHTML="<div style=\"font-size:12.5px;font-weight:600;margin:4px 0 6px\">🖼 Figure questions (auto-cropped)</div>"+aiFigs.map((fg,i)=>{
-      const tw=Math.min(fg.canvas.width,260), th=Math.max(1,Math.round(fg.canvas.height*(tw/fg.canvas.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(fg.canvas,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
+    box.innerHTML="<div style=\"font-size:12.5px;font-weight:600;margin:4px 0 6px\">🖼 Figure questions (auto-cropped — adjust if needed)</div>"+aiFigs.map((fg,i)=>{
+      const crop=cropRegion(fg.src,fg.y0,fg.y1);
+      const tw=Math.min(crop.width,260), th=Math.max(1,Math.round(crop.height*(tw/crop.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(crop,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
       const letters=AI_LABELS.slice(0,fg.count).map(L=>`<button onclick="aiFigAns(${i},'${L}')" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);font-size:12px;background:${fg.ans===L?'var(--accent)':'transparent'};color:${fg.ans===L?'#fff':'var(--text)'}">${L}</button>`).join(" ");
-      return `<div style="border:1px solid var(--border);border-radius:10px;padding:8px;margin-bottom:8px"><img src="${url}" style="width:100%;border-radius:6px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="font-size:12px;color:var(--muted)">Answer:</span>${letters}<button onclick="aiFigCount(${i})" style="padding:4px 8px;border-radius:7px;border:1px solid var(--border);font-size:11px;background:transparent;color:var(--muted)">${fg.count} choices</button><button onclick="aiFigDrop(${i})" style="margin-left:auto;padding:4px 8px;border-radius:7px;border:1px solid var(--border);font-size:11px;background:transparent;color:var(--danger,#e5484d)">✕</button></div></div>`;
+      const nb=(edge,dir,lbl)=>`<button onclick="aiFigNudge(${i},'${edge}',${dir})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);font-size:13px;background:transparent;color:var(--text)">${lbl}</button>`;
+      const cropRow=`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;font-size:11px;color:var(--muted)"><span>Crop top</span>${nb('t',-1,'▲')}${nb('t',1,'▼')}<span style="margin-left:6px">bottom</span>${nb('b',-1,'▲')}${nb('b',1,'▼')}<button onclick="aiFigManual(${i})" style="margin-left:6px;padding:3px 9px;border-radius:6px;border:1px solid var(--accent);font-size:11px;background:transparent;color:var(--accent)">Drag-crop</button></div>`;
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:8px;margin-bottom:8px"><img src="${url}" style="width:100%;border-radius:6px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="font-size:12px;color:var(--muted)">Answer:</span>${letters}<button onclick="aiFigCount(${i})" style="padding:4px 8px;border-radius:7px;border:1px solid var(--border);font-size:11px;background:transparent;color:var(--muted)">${fg.count} choices</button><button onclick="aiFigDrop(${i})" style="margin-left:auto;padding:4px 8px;border-radius:7px;border:1px solid var(--border);font-size:11px;background:transparent;color:var(--danger,#e5484d)">✕</button></div>${cropRow}</div>`;
     }).join("");
   }
-  function aiFigAns(i,L){ aiFigs[i].ans=L; renderAiFigs(); }
-  function aiFigCount(i){ aiFigs[i].count=aiFigs[i].count>=6?2:aiFigs[i].count+1; const order=AI_LABELS; if(aiFigs[i].ans&&order.indexOf(aiFigs[i].ans)>=aiFigs[i].count) aiFigs[i].ans=null; renderAiFigs(); }
-  function aiFigDrop(i){ aiFigs.splice(i,1); renderAiFigs(); }
+  function aiFigNudge(i,edge,dir){ const fg=aiFigs[i]; const step=Math.max(6,Math.round(fg.src.height*0.022)); if(edge==='t'){ fg.y0=Math.max(0,Math.min(fg.y1-12, fg.y0+dir*step)); } else { fg.y1=Math.min(fg.src.height,Math.max(fg.y0+12, fg.y1+dir*step)); } renderAiFigs(); }
+  function aiFigManual(i){
+    const fg=aiFigs[i]; const src=fg.src;
+    const m=document.createElement("div"); m.className="modal";
+    const scale=Math.min(1,(Math.min(window.innerWidth,520)-44)/src.width); const dw=Math.round(src.width*scale), dh=Math.round(src.height*scale);
+    const tc=document.createElement("canvas"); tc.width=dw; tc.height=dh; tc.getContext("2d").drawImage(src,0,0,dw,dh); const url=tc.toDataURL("image/jpeg",0.8);
+    m.innerHTML=`<div class="sheet"><button class="close" onclick="closeModal()">×</button><h3>Drag to crop</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 10px">Drag the two handles to frame this question, then tap Done.</p>
+      <div id="mc-wrap" style="position:relative;width:${dw}px;margin:0 auto;touch-action:none;user-select:none">
+        <img src="${url}" style="width:${dw}px;display:block;border-radius:8px">
+        <div id="mc-shade-t" style="position:absolute;left:0;right:0;top:0;background:rgba(20,12,40,.55)"></div>
+        <div id="mc-shade-b" style="position:absolute;left:0;right:0;bottom:0;background:rgba(20,12,40,.55)"></div>
+        <div id="mc-h0" data-h="0" style="position:absolute;left:0;right:0;height:18px;cursor:row-resize;background:var(--accent);opacity:.85;border-radius:4px"></div>
+        <div id="mc-h1" data-h="1" style="position:absolute;left:0;right:0;height:18px;cursor:row-resize;background:var(--accent);opacity:.85;border-radius:4px"></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="aiFigManualDone(${i})">Done</button></div></div>`;
+    $("modal-root").appendChild(m);
+    const st={scale, y0:fg.y0*scale, y1:fg.y1*scale, dh, drag:null};
+    window._mc=st;
+    const wrap=$("mc-wrap"), h0=$("mc-h0"), h1=$("mc-h1");
+    function paint(){ h0.style.top=(st.y0-9)+"px"; h1.style.top=(st.y1-9)+"px"; $("mc-shade-t").style.height=Math.max(0,st.y0)+"px"; $("mc-shade-b").style.height=Math.max(0,dh-st.y1)+"px"; }
+    function pos(e){ const r=wrap.getBoundingClientRect(); const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top; return Math.max(0,Math.min(dh,cy)); }
+    function down(e){ const which=e.target&&e.target.dataset?e.target.dataset.h:null; if(which===null||which===undefined) return; st.drag=which; e.preventDefault(); }
+    function move(e){ if(st.drag===null) return; const y=pos(e); if(st.drag==="0") st.y0=Math.min(y,st.y1-14); else st.y1=Math.max(y,st.y0+14); paint(); e.preventDefault(); }
+    function up(){ st.drag=null; }
+    h0.addEventListener("touchstart",down); h1.addEventListener("touchstart",down); h0.addEventListener("mousedown",down); h1.addEventListener("mousedown",down);
+    wrap.addEventListener("touchmove",move,{passive:false}); wrap.addEventListener("mousemove",move); window.addEventListener("touchend",up); window.addEventListener("mouseup",up);
+    paint();
+  }
+  function aiFigManualDone(i){ const st=window._mc; if(st){ const fg=aiFigs[i]; fg.y0=Math.round(st.y0/st.scale); fg.y1=Math.round(st.y1/st.scale); } closeModal(); renderAiFigs(); }
+  function aiFigAns(i,L){ aiFigs[i].ans=L; renderAiFigs(); previewImport(); }
+  function aiFigCount(i){ aiFigs[i].count=aiFigs[i].count>=6?2:aiFigs[i].count+1; const order=AI_LABELS; if(aiFigs[i].ans&&order.indexOf(aiFigs[i].ans)>=aiFigs[i].count) aiFigs[i].ans=null; renderAiFigs(); previewImport(); }
+  function aiFigDrop(i){ aiFigs.splice(i,1); renderAiFigs(); previewImport(); }
   async function aiFlushFigs(subByName){
     const ready=aiFigs.filter(f=>f.ans); let added=0;
     for(let k=0;k<ready.length;k++){ const fg=ready[k];
@@ -1093,7 +1163,7 @@
         let sid=subByName[(fg.sub||"").toLowerCase()];
         if(!sid && fg.sub){ const {data}=await client.from("subjects").insert({name:fg.sub,color:"#7c4dff",default_time_per_q:60}).select("*").single(); if(data){ sid=data.id; subByName[fg.sub.toLowerCase()]=sid; state.subjects.push(data); } }
         sid=sid||state.subjects[0]?.id||null;
-        const blob=await canvasToBlob(fg.canvas); if(!blob) continue;
+        const blob=await canvasToBlob(cropRegion(fg.src,fg.y0,fg.y1)); if(!blob) continue;
         const path=`${me.id}/${Date.now()}_f${k}.jpg`;
         const up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
         const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
@@ -1251,6 +1321,7 @@
         ${quiz.timed?`<div class="timer" id="qz-timer"></div>`:`<div></div>`}
         <button class="btn sm" onclick="togglePause()">${quiz.paused?"▶ Resume":"❚❚"}</button>
       </div>
+      <div style="height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin:2px 0 10px"><div style="height:100%;width:${Math.round((quiz.idx+1)/quiz.items.length*100)}%;background:var(--accent);transition:width .25s"></div></div>
       <div class="gridnav">${quiz.items.map((x,i)=>{ const aa=quiz.answers[x.q.id]; let c="gn"; if(i===quiz.idx)c+=" cur"; if(aa&&((aa.chosen&&aa.chosen.length)||aa.written||aa.submitted))c+=" done"; if(quiz.flags.has(i))c+=" flag"; return `<button class="${c}" onclick="jump(${i})">${i+1}</button>`; }).join("")}</div>
       <div class="tile">${quiz.paused?'<div class="empty">Paused — tap Resume up top.</div>':body}</div>
       <div class="row" style="margin-top:4px">
@@ -1325,16 +1396,22 @@
     const weakest=entries[0], strongest=entries[entries.length-1];
     const days={}; (attempts||[]).forEach(at=>{ const d=(at.created_at||"").slice(0,10); days[d]=(days[d]||0)+(at.total||0); });
     const last=Object.entries(days).sort().slice(-14);
+    const quizzes=(attempts||[]).length, activeDays=Object.keys(days).length;
+    const maxN=Math.max(1,...last.map(([,n])=>n));
     v.innerHTML=`
       <div class="grid2">
         <div class="stat"><div class="n">${Math.round(correct/total*100)}%</div><div class="l">Overall accuracy</div></div>
         <div class="stat"><div class="n">${total}</div><div class="l">Questions answered</div></div>
       </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="stat"><div class="n">${quizzes}</div><div class="l">Quizzes taken</div></div>
+        <div class="stat"><div class="n">${activeDays}</div><div class="l">Days active</div></div>
+      </div>
       ${entries.length>1?`<div class="tile" style="margin-top:12px;font-size:13.5px"><b style="color:var(--ok)">Strongest:</b> ${esc(strongest[0])} (${strongest[3]}%)<br><b style="color:var(--danger)">Weakest:</b> ${esc(weakest[0])} (${weakest[3]}%)</div>`:""}
       <div class="sectiontitle">By subject</div>
       <div class="tile">${entries.map(e=>barRow(e[0],e[1],e[2])).join("")}</div>
       <div class="sectiontitle">Recent activity</div>
-      <div class="tile">${last.length?last.map(([d,n])=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span style="color:var(--muted)">${d}</span><span>${n} questions</span></div>`).join(""):'<div class="empty">No attempts yet.</div>'}</div>`;
+      <div class="tile">${last.length?last.map(([d,n])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--muted);width:48px">${esc(d.slice(5))}</span><div style="flex:1;background:var(--line);border-radius:4px;height:14px;overflow:hidden"><div style="height:100%;width:${Math.round(n/maxN*100)}%;background:var(--accent)"></div></div><span style="font-size:11px;color:var(--muted);width:26px;text-align:right">${n}</span></div>`).join(""):'<div class="empty">No attempts yet.</div>'}</div>`;
   }
 
   /* ---------- NOTEPAD ---------- */
