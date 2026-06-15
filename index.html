@@ -88,6 +88,9 @@
   .themebtns{ display:flex; gap:8px; flex-wrap:wrap; }
   .themebtns button{ border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px; padding:8px 14px; font-weight:600; font-size:13px; }
   .themebtns button.on{ border-color:var(--accent); color:var(--accent); }
+  .actionbtn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; text-align:center; width:100%; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:var(--radius); padding:18px 10px; font-weight:600; font-size:13.5px; line-height:1.2; }
+  .actionbtn .ic{ font-size:27px; line-height:1; }
+  .actionbtn.vocab{ background:linear-gradient(135deg,rgba(124,77,255,.10),rgba(255,92,168,.10)); border-color:transparent; }
 
   /* modal */
   .modal{ position:fixed; inset:0; background:rgba(20,12,40,.5); display:grid; place-items:end center; z-index:30; }
@@ -1354,7 +1357,7 @@
       <div class="sectiontitle">New quiz</div>
       <div class="tile">
         <div class="field"><label>Mode</label>
-          <div class="themebtns" id="qz-mode" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${["practice","exam","study","flashcard"].map((md,i)=>`<button data-v="${md}" class="${i===0?'on':''}">${cap(md)}</button>`).join("")}</div>
+          <div class="themebtns" id="qz-mode" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${[["practice","✏️"],["exam","⏱️"],["study","📖"],["flashcard","🗂️"]].map(([md,ic],i)=>`<button data-v="${md}" class="${i===0?'on':''}">${ic} ${cap(md)}</button>`).join("")}</div>
         </div>
         <div class="field"><label>Subject</label>${qzTap("qz-sub", subjOpts, "", "themebtns")}</div>
         <button type="button" id="qz-advbtn" onclick="toggleAdv()" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;padding:2px 0;width:auto;margin-bottom:8px">More options ▾</button>
@@ -1367,14 +1370,11 @@
         <div id="qz-msg" class="msg hidden"></div>
         <button class="btn primary" style="width:100%" onclick="startQuiz(false)">Start quiz</button>
       </div>
-      <div class="sectiontitle">English vocabulary</div>
-      <div class="tile" style="background:linear-gradient(135deg,rgba(124,77,255,.08),rgba(255,92,168,.08))">
-        <div style="font-weight:600;margin-bottom:4px">📚 Vocab flashcards</div>
-        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Build an English↔Thai word list, warm up on 20 words, then test yourself.</div>
-        <button class="btn primary" style="width:100%" onclick="go('vocab')">Open vocab mode</button>
-      </div>
-      <div class="sectiontitle">Practice your mistakes</div>
-      <div class="tile"><div style="color:var(--muted);font-size:13.5px;margin-bottom:10px">Quiz only questions you've gotten wrong before.</div><button class="btn" onclick="startQuiz(true)">Start mistakes quiz</button></div>`;
+      <div class="sectiontitle">More practice</div>
+      <div class="grid2">
+        <button class="actionbtn vocab" onclick="go('vocab')"><span class="ic">📚</span>Vocab flashcards</button>
+        <button class="actionbtn" onclick="startQuiz(true)"><span class="ic">🔁</span>My mistakes</button>
+      </div>`;
     let mode="practice";
     v.querySelectorAll("#qz-mode button").forEach(b=>b.onclick=()=>{ mode=b.dataset.v; v.querySelectorAll("#qz-mode button").forEach(x=>x.classList.toggle("on",x===b)); $("qz-time-wrap").style.display=(mode==='study'||mode==='flashcard')?'none':'block'; });
     v._mode=()=>mode;
