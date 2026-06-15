@@ -123,10 +123,11 @@
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge <span style="font-weight:400;opacity:.6;font-size:.6em">by Ben</span></span></div>
       <h1 style="font-size:24px;margin-bottom:6px">Sign in</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Sign in with your email and password.</p>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Sign in, or create your account if a parent has added your email.</p>
       <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="you@gmail.com" /></div>
       <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password" /></div>
       <button class="btn primary" id="send-btn" style="width:100%">Sign in</button>
+      <button class="btn ghost" id="signup-btn" style="width:100%;margin-top:8px">Create account</button>
       <div id="auth-msg" class="msg hidden"></div>
     </div>
   </div>
@@ -197,13 +198,21 @@
     s.src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js";
     s.onload=()=>ensureClient(); document.body.appendChild(s);
   }
+  async function isAllowedEmail(email){
+    if(ALLOWED.includes(email)) return true;            // founders: always allowed
+    try{
+      const {data}=await client.from("allowed_users").select("email").eq("email",email).maybeSingle();
+      return !!data;
+    }catch(e){ return true; }                            // don't lock out on a transient error
+  }
   async function onSession(session){
     const email = session?.user?.email?.toLowerCase();
-    if(email && ALLOWED.includes(email)){
-      if(me && me.id===session.user.id && $("app").style.display==="block") return;
+    if(!email) return;
+    if(me && me.id===session.user.id && $("app").style.display==="block") return;
+    if(await isAllowedEmail(email)){
       me = session.user; await afterLogin();
     }
-    else if(email && client){ client.auth.signOut(); }
+    else if(client){ client.auth.signOut(); }
   }
 
   /* ---------- auth UI ---------- */
@@ -213,7 +222,6 @@
     const email=$("email").value.trim().toLowerCase();
     const password=$("password").value;
     if(!email || !password){ authMsg("err","Enter your email and password."); return; }
-    if(!ALLOWED.includes(email)){ authMsg("err","This app is private. That email isn't on the list."); return; }
     const c=ensureClient(); if(!c){ authMsg("err","Still loading — try again in a moment."); loadLib(); return; }
     $("send-btn").disabled=true; $("send-btn").textContent="Signing in…";
     try{
@@ -221,6 +229,22 @@
       if(error) authMsg("err","Login failed: "+error.message);
     }catch(e){ authMsg("err","Something went wrong: "+(e.message||e)); }
     $("send-btn").disabled=false; $("send-btn").textContent="Sign in";
+  });
+  $("signup-btn").addEventListener("click", async ()=>{
+    $("auth-msg").classList.add("hidden");
+    const email=$("email").value.trim().toLowerCase();
+    const password=$("password").value;
+    if(!email || !password){ authMsg("err","Enter an email and choose a password."); return; }
+    if(password.length<6){ authMsg("err","Password must be at least 6 characters."); return; }
+    const c=ensureClient(); if(!c){ authMsg("err","Still loading — try again in a moment."); loadLib(); return; }
+    $("signup-btn").disabled=true; $("signup-btn").textContent="Creating…";
+    try{
+      const {data,error}=await c.auth.signUp({email,password});
+      if(error){ authMsg("err", /not authorized/i.test(error.message) ? "That email hasn't been added yet — ask your parent to add it first." : ("Sign-up failed: "+error.message)); }
+      else if(data && data.session){ authMsg("ok","Account created — signing you in…"); }
+      else { authMsg("ok","Account created. Check your email to confirm, then sign in."); }
+    }catch(e){ authMsg("err","Something went wrong: "+(e.message||e)); }
+    $("signup-btn").disabled=false; $("signup-btn").textContent="Create account";
   });
   $("password").addEventListener("keydown",e=>{ if(e.key==="Enter") $("send-btn").click(); });
   $("email").addEventListener("keydown",e=>{ if(e.key==="Enter") $("password").focus(); });
@@ -941,6 +965,16 @@
         <div class="field"><label>Grade</label><select id="se-grade"><option ${profile.grade==="P6"?"selected":""}>P6</option><option ${profile.grade==="M2"?"selected":""}>M2</option><option ${profile.grade==="Other"?"selected":""}>Other</option></select></div>
         <button class="btn primary sm" onclick="saveProfile()">Save</button>
       </div>
+      ${profile.role!=="child" ? `
+      <div class="sectiontitle">My kids</div>
+      <div class="tile">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Add your child's email so they can sign in. They create their own account with that email and a password — their bank and quizzes stay their own, and you can see them.</div>
+        <div id="mykids-list" style="margin-bottom:10px"><div style="color:var(--muted);font-size:13px">Loading…</div></div>
+        <div class="field"><label>Child's name</label><input id="kid-name" placeholder="e.g. Nim"></div>
+        <div class="field"><label>Child's email</label><input id="kid-email" type="email" placeholder="kid@gmail.com"></div>
+        <button class="btn primary sm" onclick="addKid()">Add child</button>
+        <div id="kid-msg" class="msg hidden"></div>
+      </div>` : ""}
       <div class="sectiontitle">Theme</div>
       <div class="tile"><div class="themebtns" id="se-themes"></div></div>
       <div class="sectiontitle">Parent reports (Telegram)</div>
@@ -979,6 +1013,7 @@
       b.onclick=async()=>{ applyTheme(t); profile.theme=t; [...box.children].forEach(c=>c.className=""); b.className="on"; await client.from("profiles").update({theme:t}).eq("id",me.id); }; box.appendChild(b); });
     $("av-file").onchange = uploadAvatar;
     const imp=$("imp-file"); if(imp) imp.onchange=importData;
+    if(profile.role!=="child") loadKids();
   }
   async function saveProfile(){
     const name=$("se-name").value.trim(), grade=$("se-grade").value;
@@ -1006,6 +1041,34 @@
     if(p.length<6){ alert("Too short — please use at least 6 characters."); return; }
     const {error}=await client.auth.updateUser({password:p});
     alert(error?("Couldn't change password: "+error.message):"Password updated. Use it next time you sign in.");
+  }
+  /* ---------- my kids ---------- */
+  const myEmail=()=>(me.email||"").toLowerCase();
+  async function loadKids(){
+    const box=$("mykids-list"); if(!box) return;
+    try{
+      const {data,error}=await client.from("allowed_users").select("email,display_name,role").eq("parent_email",myEmail());
+      if(error) throw error;
+      const kids=(data||[]).filter(k=>k.role==="child");
+      if(!kids.length){ box.innerHTML=`<div style="color:var(--muted);font-size:13px">No kids added yet.</div>`; return; }
+      box.innerHTML=kids.map(k=>`<div class="listitem"><div class="grow"><div class="t">${esc(k.display_name||k.email)}</div><div class="s">${esc(k.email)}</div></div><button class="btn danger sm" onclick="removeKid('${esc((k.email||"").replace(/'/g,"\\'"))}')">Remove</button></div>`).join("");
+    }catch(e){ box.innerHTML=`<div class="msg err">Couldn't load kids: ${esc(e.message||e)}</div>`; }
+  }
+  async function addKid(){
+    const name=$("kid-name").value.trim(), email=$("kid-email").value.trim().toLowerCase();
+    const m=$("kid-msg");
+    if(!email){ m.className="msg err"; m.textContent="Enter the child's email."; m.classList.remove("hidden"); return; }
+    try{
+      const {error}=await client.from("allowed_users").insert({email, role:"child", parent_email:myEmail(), display_name:name||null});
+      if(error) throw error;
+      m.className="msg ok"; m.textContent="Added. Have "+(name||email)+" open the app, tap Create account, and sign up with this email."; m.classList.remove("hidden");
+      $("kid-name").value=""; $("kid-email").value=""; loadKids();
+    }catch(e){ m.className="msg err"; m.textContent="Couldn't add: "+(e.message||e); m.classList.remove("hidden"); }
+  }
+  async function removeKid(email){
+    if(!confirm("Remove "+email+"? They won't be able to sign in. Their existing data stays.")) return;
+    try{ const {error}=await client.from("allowed_users").delete().eq("email",email).eq("parent_email",myEmail()); if(error) throw error; loadKids(); }
+    catch(e){ alert("Couldn't remove: "+(e.message||e)); }
   }
 
   /* ---------- TELEGRAM ---------- */
