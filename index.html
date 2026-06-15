@@ -31,7 +31,7 @@
   h1,h2,h3{ font-family:var(--fd); letter-spacing:-.02em; margin:0; }
   button{ font-family:var(--fb); cursor:pointer; }
   input,select,textarea{ font-family:var(--fb); font-size:16px; color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:10px; padding:11px 13px; width:100%; }
-  input:focus,select,textarea:focus{ outline:none; border-color:var(--accent); }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--accent); }
   textarea{ resize:vertical; min-height:64px; }
   label{ display:block; font-size:12.5px; font-weight:600; margin:0 0 6px; color:var(--muted); }
   .field{ margin-bottom:14px; }
@@ -291,7 +291,7 @@
   function go(route){
     state.route=route;
     [...$("nav").children].forEach(b=>b.classList.toggle("on", b.dataset.k===route));
-    $("title").textContent = ({dashboard:"Dashboard",bank:"Question bank",quiz:"Quiz",stats:"Stats",settings:"You"})[route];
+    $("title").textContent = ({dashboard:"Dashboard",bank:"Question bank",quiz:"Quiz",stats:"Stats",settings:"You",vocab:"English vocab"})[route]||"Quiz";
     $("top-av").innerHTML = avatarInner();
     const v=$("view");
     try{
@@ -300,6 +300,7 @@
       else if(route==="settings") viewSettings(v);
       else if(route==="quiz") viewQuiz(v);
       else if(route==="stats") viewStats(v);
+      else if(route==="vocab") viewVocab(v);
     }catch(e){ v.innerHTML = `<div class="msg err">Error: ${e.message}</div>`; }
   }
 
@@ -1244,17 +1245,26 @@
       <div class="sectiontitle">New quiz</div>
       <div class="tile">
         <div class="field"><label>Mode</label>
-          <div class="themebtns" id="qz-mode">${["practice","exam","study","flashcard"].map((md,i)=>`<button data-v="${md}" class="${i===0?'on':''}">${cap(md)}</button>`).join("")}</div>
+          <div class="themebtns" id="qz-mode" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${["practice","exam","study","flashcard"].map((md,i)=>`<button data-v="${md}" class="${i===0?'on':''}">${cap(md)}</button>`).join("")}</div>
         </div>
         <div class="field"><label>Subject</label><select id="qz-sub"><option value="">All subjects</option>${subs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
-        <div class="field"><label>Sub-topic</label><select id="qz-st"><option value="">All sub-topics</option></select></div>
-        <div class="field"><label>Grade</label><select id="qz-grade"><option value="">All</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div>
-        <div class="row">
-          <div class="field"><label>Questions</label><select id="qz-count"><option>10</option><option>20</option><option>30</option><option>40</option><option>50</option></select></div>
-          <div class="field" id="qz-time-wrap"><label>Min / question</label><select id="qz-time"><option value="60">1</option><option value="120">2</option><option value="180">3</option><option value="240">4</option><option value="300">5</option></select></div>
+        <button type="button" id="qz-advbtn" onclick="toggleAdv()" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;padding:2px 0;width:auto;margin-bottom:8px">More options ▾</button>
+        <div id="qz-adv" class="hidden">
+          <div class="field"><label>Sub-topic</label><select id="qz-st"><option value="">All sub-topics</option></select></div>
+          <div class="field"><label>Grade</label><select id="qz-grade"><option value="">All</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div>
+          <div class="row">
+            <div class="field"><label>Questions</label><select id="qz-count"><option>10</option><option>20</option><option>30</option><option>40</option><option>50</option></select></div>
+            <div class="field" id="qz-time-wrap"><label>Min / question</label><select id="qz-time"><option value="60">1</option><option value="120">2</option><option value="180">3</option><option value="240">4</option><option value="300">5</option></select></div>
+          </div>
         </div>
         <div id="qz-msg" class="msg hidden"></div>
         <button class="btn primary" style="width:100%" onclick="startQuiz(false)">Start quiz</button>
+      </div>
+      <div class="sectiontitle">English vocabulary</div>
+      <div class="tile" style="background:linear-gradient(135deg,rgba(124,77,255,.08),rgba(255,92,168,.08))">
+        <div style="font-weight:600;margin-bottom:4px">📚 Vocab flashcards</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Build an English↔Thai word list, warm up on 20 words, then test yourself.</div>
+        <button class="btn primary" style="width:100%" onclick="go('vocab')">Open vocab mode</button>
       </div>
       <div class="sectiontitle">Practice your mistakes</div>
       <div class="tile"><div style="color:var(--muted);font-size:13.5px;margin-bottom:10px">Quiz only questions you've gotten wrong before.</div><button class="btn" onclick="startQuiz(true)">Start mistakes quiz</button></div>`;
@@ -1264,6 +1274,7 @@
     $("qz-sub").onchange=(e)=>{ $("qz-st").innerHTML=`<option value="">All sub-topics</option>`+subtopicsOf(e.target.value).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join(""); };
   }
   function qzmsg(t){ const m=$("qz-msg"); if(m){ m.className="msg err"; m.textContent=t; m.classList.remove("hidden"); } }
+  function toggleAdv(){ const a=$("qz-adv"), b=$("qz-advbtn"); if(!a) return; const hidden=a.classList.toggle("hidden"); if(b) b.textContent = hidden ? "More options ▾" : "Fewer options ▴"; }
 
   async function startQuiz(mistakes){
     const v=$("view"); const mode = mistakes ? "practice" : v._mode();
@@ -1420,6 +1431,100 @@
     $("modal-root").appendChild(m);
   }
   async function saveNotes(){ const t=$("np").value; try{ await client.from("notes").upsert({user_id:me.id, content:t, updated_at:new Date().toISOString()},{onConflict:"user_id"}); }catch(e){} closeModal(); }
+
+  /* ---------- ENGLISH VOCAB ---------- */
+  let vocabWords=[], vocabState=null;
+  function vocabSub(){ return state.subjects.find(s=>(s.name||"").toLowerCase()==="english vocabulary"); }
+  async function vocabSubjectId(){ const ex=vocabSub(); if(ex) return ex.id; const {data,error}=await client.from("subjects").insert({name:"English Vocabulary",color:"#7c4dff",default_time_per_q:30}).select("*").single(); if(error) throw error; state.subjects.push(data); return data.id; }
+  async function loadVocab(){ const v=vocabSub(); if(!v) return []; const {data}=await client.from("questions").select("id,stem,answer_text").eq("subject_id",v.id).eq("type","written").order("created_at",{ascending:false}).limit(1000); return (data||[]).map(r=>({id:r.id,en:r.stem||"",th:r.answer_text||""})); }
+  async function aiTextCall(prompt){
+    const gk=appConfig.gemini_key, ck=appConfig.claude_key;
+    if(gk){ const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(gk),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})}); const j=await r.json(); if(j.error) throw new Error(j.error.message); const c=(j.candidates||[])[0]||{}; return (((c.content||{}).parts)||[]).map(p=>p.text||"").join(""); }
+    if(ck){ const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ck,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,messages:[{role:"user",content:prompt}]})}); const j=await r.json(); if(j.error) throw new Error(j.error.message); return (j.content||[]).map(p=>p.text||"").join(""); }
+    throw new Error("No AI key saved — add Gemini or Claude in You → AI auto-import.");
+  }
+  function vcParsePairs(raw){ try{ let t=(raw||"").replace(/```[a-z]*\n?/gi,"").trim(); const a=t.indexOf("["), b=t.lastIndexOf("]"); if(a>=0&&b>a)t=t.slice(a,b+1); const arr=JSON.parse(t); return (Array.isArray(arr)?arr:[]).map(x=>({en:String(x.en||x.english||"").trim(),th:String(x.th||x.thai||"").trim()})).filter(x=>x.en&&x.th); }catch(_){ return []; } }
+  async function vcAiPairs(enOnly,imageFile){
+    const pairs=[];
+    if(imageFile){ const canvases=await aiLoadCanvases(imageFile);
+      for(const cv of canvases){ const b64=cv.toDataURL("image/jpeg",0.85).split(",")[1];
+        const prompt="This image is an English vocabulary list, maybe with Thai meanings. Extract every entry. Return ONLY a JSON array like [{\"en\":\"word or phrase\",\"th\":\"คำแปลไทย\"}]. If a Thai meaning is missing, translate the English to natural Thai yourself.";
+        const raw = appConfig.gemini_key ? await aiCallGemini(appConfig.gemini_key,b64,prompt) : await aiCallClaude(appConfig.claude_key,b64,prompt);
+        pairs.push(...vcParsePairs(raw)); }
+    }
+    if(enOnly.length){ const prompt="Translate each English word or phrase to natural Thai. Return ONLY a JSON array like [{\"en\":\"...\",\"th\":\"...\"}] in the same order. Words:\n"+enOnly.join("\n"); pairs.push(...vcParsePairs(await aiTextCall(prompt))); }
+    return pairs;
+  }
+  async function viewVocab(v){
+    v.innerHTML=`<div class="empty">Loading…</div>`;
+    try{ vocabWords=await loadVocab(); }catch(e){ vocabWords=[]; }
+    const words=vocabWords;
+    v.innerHTML=`
+      <button class="btn sm ghost" onclick="go('quiz')">← Back</button>
+      <div class="sectiontitle">Add words</div>
+      <div class="tile">
+        <div class="field"><label>Type words — one per line</label><textarea id="vc-text" style="min-height:104px;font-size:14px" placeholder="apple = แอปเปิล&#10;run = วิ่ง&#10;serendipity"></textarea></div>
+        <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px">Use <b>english = thai</b>, or just the English word and I'll add the Thai for you.</div>
+        <div class="field"><label>…or import from a photo</label><input id="vc-img" type="file" accept="image/*,application/pdf"></div>
+        <button class="btn primary" style="width:100%" onclick="vcAdd()">Add words</button>
+        <div id="vc-stat" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+      </div>
+      <div class="sectiontitle">My words (${words.length})</div>
+      ${words.length?`<div class="tile"><button class="btn primary" style="width:100%" onclick="vcStartRound()">Start a round →</button><div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Warm up on ${Math.min(20,words.length)} random words, then test yourself.</div></div>`:`<div class="empty">No words yet — add some above to get started.</div>`}
+      <div id="vc-list">${words.map(w=>`<div class="listitem"><div class="grow"><div class="t">${esc(w.en)}</div><div class="s">${esc(w.th)}</div></div><button class="btn sm danger" onclick="vcDelete('${w.id}')">✕</button></div>`).join("")}</div>`;
+  }
+  async function vcAdd(){
+    const set=t=>{const s=$("vc-stat"); if(s)s.textContent=t;};
+    const raw=$("vc-text").value; const img=$("vc-img").files[0];
+    const lines=(raw||"").split("\n").map(l=>l.trim()).filter(Boolean);
+    const pairs=[], enOnly=[];
+    for(const ln of lines){ const mm=ln.match(/^(.+?)\s*(?:=|\t|:| - | — )\s*(.+)$/); if(mm && mm[2].trim()){ pairs.push({en:mm[1].trim(),th:mm[2].trim()}); } else { enOnly.push(ln); } }
+    let aiErr="";
+    if(enOnly.length||img){ set("Asking AI for Thai…"); try{ pairs.push(...await vcAiPairs(enOnly,img)); }catch(e){ aiErr=e.message||String(e); } }
+    const good=pairs.filter(p=>p.en&&p.th);
+    if(!good.length){ set(aiErr?("Couldn't translate: "+aiErr):"Nothing to add — type some words or pick an image."); return; }
+    try{ set("Saving "+good.length+" word(s)…"); const vid=await vocabSubjectId();
+      const r=await client.from("questions").insert(good.map(p=>({subject_id:vid,subtopic_id:null,grade:null,type:"written",answer_mode:"single",stem:p.en,answer_text:p.th,created_by:me.id}))); if(r.error) throw r.error;
+      viewVocab($("view"));
+    }catch(e){ set("Save failed: "+(e.message||e)); }
+  }
+  async function vcDelete(id){ try{ await client.from("questions").delete().eq("id",id); }catch(e){} viewVocab($("view")); }
+  function vcStartRound(){ if(!vocabWords.length) return; const studied=shuffle(vocabWords).slice(0,Math.min(20,vocabWords.length)); vocabState={studied}; renderVocabStudy(); }
+  function renderVocabStudy(){ const ws=vocabState.studied; $("title").textContent="Warm-up"; $("view").innerHTML=`
+      <button class="btn sm ghost" onclick="go('vocab')">← Back</button>
+      <div class="sectiontitle">Read these ${ws.length} words</div>
+      <div class="tile">${ws.map(w=>`<div class="listitem"><div class="grow"><div class="t">${esc(w.en)}</div><div class="s">${esc(w.th)}</div></div></div>`).join("")}</div>
+      <button class="btn primary" style="width:100%;margin-top:6px" onclick="vcReady()">I'm ready →</button>`; }
+  function vcReady(){ const max=vocabState.studied.length; let opts=[10,15,20].filter(n=>n<=max); if(!opts.length) opts=[max]; $("title").textContent="Choose length"; $("view").innerHTML=`
+      <button class="btn sm ghost" onclick="renderVocabStudy()">← Re-read</button>
+      <div class="sectiontitle">How many to test?</div>
+      <div class="tile"><div style="display:grid;grid-template-columns:repeat(${opts.length},1fr);gap:8px">${opts.map(n=>`<button class="btn primary" onclick="vcChoose(${n})">${n}</button>`).join("")}</div><div style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">From the ${max} words you just read.</div></div>`; }
+  function vcChoose(n){ vocabState.items=shuffle(vocabState.studied).slice(0,n).map(w=>({w,revealed:false,known:null})); vocabState.idx=0; vocabState.startedAt=Date.now(); $("nav").style.display="none"; renderVocabCard(); }
+  function renderVocabCard(){ const it=vocabState.items[vocabState.idx], n=vocabState.items.length; $("title").textContent="Vocab test"; $("view").innerHTML=`
+      <div class="qhead"><button class="btn sm" onclick="exitVocab()">✕</button><div class="prog">${vocabState.idx+1} / ${n}</div><div></div><div></div></div>
+      <div style="height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin:2px 0 14px"><div style="height:100%;width:${Math.round((vocabState.idx+1)/n*100)}%;background:var(--accent)"></div></div>
+      <div class="tile" style="text-align:center;padding:36px 18px;min-height:130px">
+        <div style="font-family:var(--fd);font-weight:700;font-size:27px">${esc(it.w.en)}</div>
+        ${it.revealed?`<div style="font-size:21px;color:var(--accent);margin-top:18px">${esc(it.w.th)}</div>`:`<button class="btn" style="margin-top:20px" onclick="vcReveal()">Show Thai</button>`}
+      </div>
+      ${it.revealed?`<div class="row" style="margin-top:10px"><button class="btn danger" style="flex:1" onclick="vcMark(false)">Didn't know</button><button class="btn primary" style="flex:1;background:var(--ok);border-color:var(--ok)" onclick="vcMark(true)">Knew it</button></div>`:``}`; }
+  function vcReveal(){ vocabState.items[vocabState.idx].revealed=true; renderVocabCard(); }
+  function vcMark(known){ vocabState.items[vocabState.idx].known=known; if(vocabState.idx<vocabState.items.length-1){ vocabState.idx++; renderVocabCard(); } else vcFinish(); }
+  async function vcFinish(){
+    const items=vocabState.items; const total=items.length, correct=items.filter(i=>i.known).length;
+    let vid=null; try{ vid=await vocabSubjectId(); }catch(e){}
+    const duration=Math.round((Date.now()-vocabState.startedAt)/1000);
+    try{ const {data:att,error}=await client.from("attempts").insert({mode:"vocab",total,correct,score:correct,duration_sec:duration}).select("id").single();
+      if(!error&&att) await client.from("answers").insert(items.map(i=>({attempt_id:att.id,question_id:i.w.id,subject_id:vid,subtopic_id:null,chosen:null,written_text:null,is_correct:!!i.known,self_graded:true,time_sec:0}))); }catch(e){}
+    try{ tgSendReport("vocab",{ total, correct, items: items.map(i=>({q:{subject_id:vid,type:"written",answer_text:i.w.th,stem:i.w.en},choices:[],a:{correct:!!i.known,self_graded:true}})) }); }catch(e){}
+    const pct=Math.round(correct/total*100), missed=items.filter(i=>!i.known);
+    vocabState=null; $("nav").style.display="flex"; state.route="quiz"; $("title").textContent="Vocab results";
+    $("view").innerHTML=`
+      <div class="tile" style="text-align:center"><div style="font-family:var(--fd);font-size:46px;font-weight:700;color:${perfColor(pct)}">${pct}%</div><div style="color:var(--muted)">${correct} of ${total} known</div></div>
+      ${missed.length?`<div class="sectiontitle">Review these</div><div class="tile">${missed.map(i=>`<div class="listitem"><div class="grow"><div class="t">${esc(i.w.en)}</div><div class="s">${esc(i.w.th)}</div></div></div>`).join("")}</div>`:`<div class="tile" style="text-align:center;color:var(--ok)">Perfect — you knew them all! 🎉</div>`}
+      <div class="row" style="margin-top:12px"><button class="btn" onclick="go('vocab')">Vocab home</button><button class="btn primary" onclick="vcStartRound()">Another round</button></div>`;
+  }
+  function exitVocab(){ if(confirm("Leave this round? Progress won't be saved.")){ vocabState=null; $("nav").style.display="flex"; go("vocab"); } }
 
   /* ---------- utils ---------- */
   function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
