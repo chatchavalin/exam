@@ -118,6 +118,47 @@
   .gn.flag{ box-shadow:0 0 0 2px var(--warn) inset; }
   .fab{ position:fixed; right:18px; bottom:24px; width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-size:21px; box-shadow:0 8px 20px -6px var(--accent); z-index:9; }
   .bar{ height:8px; background:var(--line); border-radius:6px; overflow:hidden; }
+
+  /* subject-first home */
+  .hellobar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 4px; }
+  .hellobar .hi{ font-family:var(--fd); font-weight:700; font-size:22px; letter-spacing:-.02em; line-height:1.15; }
+  .hellobar .sub{ font-size:13px; color:var(--muted); }
+  .streakpill{ display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:22px; padding:8px 14px; font-weight:700; font-size:15px; font-family:var(--fd); white-space:nowrap; }
+  .pickhead{ display:flex; align-items:center; justify-content:space-between; margin:20px 2px 12px; }
+  .pickhead h3{ font-size:18px; }
+  .pickhead .mng{ font-size:12.5px; font-weight:600; color:var(--accent); background:none; border:none; padding:0; width:auto; }
+  .subjgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .subjcard{ position:relative; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 15px 15px; min-height:108px; display:flex; flex-direction:column; justify-content:flex-start; overflow:hidden; color:var(--ink); transition:transform .09s ease; }
+  .subjcard::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--sc,var(--accent)); }
+  .subjcard:active{ transform:scale(.975); }
+  .subjcard .sname{ font-family:var(--fd); font-weight:700; font-size:15.5px; line-height:1.2; padding-right:22px; }
+  .subjcard .scount{ font-size:12.5px; color:var(--muted); margin-top:8px; }
+  .subjcard .sgo{ position:absolute; top:13px; right:13px; width:24px; height:24px; border-radius:50%; background:color-mix(in srgb, var(--sc,var(--accent)) 15%, transparent); color:var(--sc,var(--accent)); display:grid; place-items:center; font-size:15px; font-weight:700; line-height:1; }
+  @media (prefers-reduced-motion: no-preference){
+    .subjgrid>.subjcard{ animation:rise .3s ease both; }
+    .subjgrid>.subjcard:nth-child(2){ animation-delay:.04s; } .subjgrid>.subjcard:nth-child(3){ animation-delay:.08s; }
+    .subjgrid>.subjcard:nth-child(4){ animation-delay:.12s; } .subjgrid>.subjcard:nth-child(n+5){ animation-delay:.16s; }
+    @keyframes rise{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+  }
+  /* subject action screen */
+  .subjhero{ display:flex; align-items:center; gap:13px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:6px; }
+  .subjhero .badge{ width:46px; height:46px; border-radius:13px; background:var(--sc,var(--accent)); display:grid; place-items:center; color:#fff; font-family:var(--fd); font-weight:700; font-size:19px; flex:none; }
+  .subjhero .sname{ font-family:var(--fd); font-weight:700; font-size:18px; }
+  .subjhero .scount{ font-size:12.5px; color:var(--muted); }
+  .actcard{ display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:11px; color:var(--ink); transition:transform .09s ease; }
+  .actcard:active{ transform:scale(.985); }
+  .actcard .icn{ width:46px; height:46px; border-radius:13px; display:grid; place-items:center; font-size:21px; flex:none; background:var(--line); color:var(--ink); }
+  .actcard.go .icn{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; }
+  .actcard .ttl{ font-family:var(--fd); font-weight:700; font-size:15.5px; display:block; }
+  .actcard .desc{ font-size:12.5px; color:var(--muted); margin-top:2px; display:block; }
+  .actcard .arr{ margin-left:auto; color:var(--muted); font-size:20px; flex:none; }
+  .backlink{ background:none; border:none; color:var(--accent); font-weight:600; font-size:13.5px; padding:4px 0; margin-bottom:6px; width:auto; }
+  /* settings: subjects on home */
+  .homesubj{ display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .homesubj:last-child{ border-bottom:none; }
+  .homesubj .grow{ flex:1; min-width:0; font-weight:600; font-size:14px; }
+  .togglepill{ border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:20px; padding:6px 14px; font-weight:600; font-size:12.5px; flex:none; width:auto; }
+  .togglepill.on{ border-color:var(--accent); color:var(--accent); background:rgba(124,77,255,.08); }
 </style>
 </head>
 <body>
@@ -310,6 +351,14 @@
   const subtopicsOf = (sid)=> state.subtopics.filter(s=>s.subject_id===sid);
   const subjectById = (id)=> state.subjects.find(s=>s.id===id);
 
+  /* subject-first navigation + per-user "show on Home" preference */
+  state.pendingSubject=null; state.statsSubject=null;
+  function hideKey(){ return "ef_hidesubj_"+((me&&me.id)||"x"); }
+  function getHiddenSubj(){ try{ return JSON.parse(localStorage.getItem(hideKey())||"[]")||[]; }catch(_){ return []; } }
+  function setHiddenSubj(arr){ try{ localStorage.setItem(hideKey(), JSON.stringify(arr)); }catch(_){} }
+  function activeSubjects(){ const h=getHiddenSubj(); return state.subjects.filter(s=>!h.includes(s.id)); }
+  async function subjectCounts(){ const c={}; try{ const {data}=await client.from("questions").select("subject_id").eq("owner_id", state.bankOwner); (data||[]).forEach(r=>{ if(r.subject_id) c[r.subject_id]=(c[r.subject_id]||0)+1; }); }catch(_){} return c; }
+
   /* ---------- app shell + router ---------- */
   const NAV = [
     ["dashboard","Home", '<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'],
@@ -320,16 +369,19 @@
   ];
   function enterApp(){ hideAllScreens(); $("app").style.display="block"; buildNav(); go(state.route||"dashboard"); }
   function buildNav(){
-    $("nav").innerHTML = NAV.map(([k,l,p])=>`<button data-k="${k}" onclick="go('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>${l}</button>`).join("");
+    $("nav").innerHTML = NAV.map(([k,l,p])=>`<button data-k="${k}" onclick="goNav('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>${l}</button>`).join("");
   }
+  function goNav(r){ state.pendingSubject=null; state.statsSubject=null; go(r); }
   function go(route){
     state.route=route;
-    [...$("nav").children].forEach(b=>b.classList.toggle("on", b.dataset.k===route));
-    $("title").textContent = ({dashboard:"Dashboard",bank:"Question bank",quiz:"Quiz",stats:"Stats",settings:"You",vocab:"English vocab"})[route]||"Quiz";
+    const navKey = (route==="subjectactions") ? "dashboard" : route;
+    [...$("nav").children].forEach(b=>b.classList.toggle("on", b.dataset.k===navKey));
+    $("title").textContent = ({dashboard:"Home",bank:"Question bank",quiz:"Quiz",stats:"Stats",settings:"You",vocab:"English vocab",subjectactions:"Subject"})[route]||"Quiz";
     $("top-av").innerHTML = avatarInner();
     const v=$("view");
     try{
-      if(route==="dashboard") viewDashboard(v);
+      if(route==="dashboard") viewHome(v);
+      else if(route==="subjectactions") viewSubjectActions(v);
       else if(route==="bank") viewBank(v);
       else if(route==="settings") viewSettings(v);
       else if(route==="quiz") viewQuiz(v);
@@ -388,6 +440,65 @@
     return streak;
   }
 
+  /* ---------- SUBJECT-FIRST HOME ---------- */
+  async function viewHome(v){
+    const {data:atts}=await client.from("attempts").select("created_at").eq("user_id", state.bankOwner);
+    const streak=computeStreak((atts||[]).map(a=>a.created_at));
+    const counts=await subjectCounts();
+    const subs=activeSubjects();
+    const owners=[{id:me.id,name:"Me"}].concat(state.kids||[]);
+    const ownerSel = (profile.role!=="child" && (state.kids||[]).length)
+      ? `<div class="row" style="margin:2px 0 14px"><select id="hm-owner" style="flex:1">${owners.map(o=>`<option value="${o.id}" ${o.id===state.bankOwner?"selected":""}>${o.id===me.id?"👤 Me":"👤 "+esc(o.name)}</option>`).join("")}</select></div>`
+      : "";
+    const cards = subs.map(s=>{
+      const n=counts[s.id]||0; const col=s.color||"#7c4dff";
+      return `<button class="subjcard" style="--sc:${esc(col)}" onclick="goSubject('${s.id}')">
+        <span class="sgo">›</span>
+        <span class="sname">${esc(s.name)}</span>
+        <span class="scount">${n} question${n===1?"":"s"}</span>
+      </button>`;
+    }).join("");
+    v.innerHTML = `
+      <div class="hellobar">
+        <div><div class="sub">${greet()},</div><div class="hi">${esc(profile.display_name||"there")} 👋</div></div>
+        <div class="streakpill">🔥 ${streak}<span style="color:var(--muted);font-weight:600;font-size:11px">day${streak===1?"":"s"}</span></div>
+      </div>
+      ${ownerSel}
+      <div class="pickhead"><h3>Pick a subject</h3><button class="mng" onclick="go('settings')">Edit ▸</button></div>
+      ${subs.length ? `<div class="subjgrid">${cards}</div>`
+        : `<div class="tile"><div style="font-weight:600;margin-bottom:4px">No subjects yet</div><div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Add a subject and some questions to get started.</div><button class="btn primary" onclick="go('bank')">Go to question bank</button></div>`}
+      ${subs.length && subs.length<state.subjects.length ? `<div style="text-align:center;margin-top:14px"><button class="btn sm ghost" onclick="go('settings')">Some subjects are hidden — manage in You</button></div>` : ""}
+      ${subs.length ? `<div style="text-align:center;margin-top:16px"><button class="btn sm ghost" onclick="go('bank')">＋ Add or manage questions</button></div>` : ""}`;
+    const ho=$("hm-owner"); if(ho) ho.onchange=(e)=>{ state.bankOwner=e.target.value; viewHome(v); };
+  }
+  function goSubject(id){ state.pendingSubject=id; go("subjectactions"); }
+  function viewSubjectActions(v){
+    const s=subjectById(state.pendingSubject);
+    if(!s){ go("dashboard"); return; }
+    const col=s.color||"#7c4dff";
+    $("title").textContent=s.name;
+    v.innerHTML = `<div class="empty">Loading…</div>`;
+    (async()=>{
+      const counts=await subjectCounts(); const n=counts[s.id]||0;
+      v.innerHTML = `
+        <button class="backlink" onclick="go('dashboard')">‹ All subjects</button>
+        <div class="subjhero" style="--sc:${esc(col)}">
+          <div class="badge">${esc((s.name||"?").trim().slice(0,1).toUpperCase())}</div>
+          <div><div class="sname">${esc(s.name)}</div><div class="scount">${n} question${n===1?"":"s"} in bank</div></div>
+        </div>
+        <div class="sectiontitle">What would you like to do?</div>
+        <button class="actcard go" onclick="goSubjectAction('quiz')"><span class="icn">▶</span><span><span class="ttl">Do a quiz</span><span class="desc">Practice, exam, study or flashcards</span></span><span class="arr">›</span></button>
+        <button class="actcard" onclick="goSubjectAction('add')"><span class="icn">✏️</span><span><span class="ttl">Add a quiz</span><span class="desc">Add new questions to this subject</span></span><span class="arr">›</span></button>
+        <button class="actcard" onclick="goSubjectAction('stats')"><span class="icn">📊</span><span><span class="ttl">See stats</span><span class="desc">Accuracy and progress for ${esc(s.name)}</span></span><span class="arr">›</span></button>`;
+    })();
+  }
+  function goSubjectAction(kind){
+    const sid=state.pendingSubject; if(!sid){ go("dashboard"); return; }
+    if(kind==="quiz"){ go("quiz"); }                 // viewQuiz reads pendingSubject, then clears it
+    else if(kind==="add"){ bankFilter=sid; go("bank"); openQ(null, sid); }
+    else if(kind==="stats"){ state.statsSubject=sid; state.pendingSubject=null; go("stats"); }
+  }
+
   /* ---------- BANK ---------- */
   let bankFilter="", bankSearch="", bankData=[];
   async function viewBank(v){
@@ -435,8 +546,8 @@
     }).join("");
   }
 
-  async function openQ(id){
-    let q = { type:"mcq", answer_mode:"single", grade:profile.grade||"", subject_id:state.subjects[0]?.id||"", choices:[{label:"ก"},{label:"ข"},{label:"ค"},{label:"ง"}] };
+  async function openQ(id, preferSubject){
+    let q = { type:"mcq", answer_mode:"single", grade:profile.grade||"", subject_id:preferSubject||state.subjects[0]?.id||"", choices:[{label:"ก"},{label:"ข"},{label:"ค"},{label:"ง"}] };
     if(id){
       const { data } = await client.from("questions").select("*").eq("id",id).single();
       const { data:ch } = await client.from("choices").select("*").eq("question_id",id).order("position");
@@ -985,6 +1096,11 @@
         <div class="field"><label>Grade</label><select id="se-grade"><option ${profile.grade==="P6"?"selected":""}>P6</option><option ${profile.grade==="M2"?"selected":""}>M2</option><option ${profile.grade==="Other"?"selected":""}>Other</option></select></div>
         <button class="btn primary sm" onclick="saveProfile()">Save</button>
       </div>
+      <div class="sectiontitle">Subjects on Home</div>
+      <div class="tile">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Choose which subjects show on the Home screen. Hidden ones stay in your bank — they just don't clutter the picker.</div>
+        <div id="home-subj-list"><div style="color:var(--muted);font-size:13px">No subjects yet.</div></div>
+      </div>
       ${profile.role!=="child" ? `
       <div class="sectiontitle">My kids</div>
       <div class="tile">
@@ -1033,7 +1149,21 @@
       b.onclick=async()=>{ applyTheme(t); profile.theme=t; [...box.children].forEach(c=>c.className=""); b.className="on"; await client.from("profiles").update({theme:t}).eq("id",me.id); }; box.appendChild(b); });
     $("av-file").onchange = uploadAvatar;
     const imp=$("imp-file"); if(imp) imp.onchange=importData;
+    renderHomeSubjects();
     if(profile.role!=="child") loadKids();
+  }
+  function renderHomeSubjects(){
+    const box=$("home-subj-list"); if(!box) return;
+    if(!state.subjects.length){ box.innerHTML=`<div style="color:var(--muted);font-size:13px">No subjects yet. Add some in the Bank.</div>`; return; }
+    const h=getHiddenSubj();
+    box.innerHTML=state.subjects.map(s=>{ const on=!h.includes(s.id);
+      return `<div class="homesubj"><span class="dot" style="background:${esc(s.color||'#7c4dff')}"></span><span class="grow">${esc(s.name)}</span><button class="togglepill ${on?'on':''}" onclick="toggleHomeSubject('${s.id}')">${on?'Shown':'Hidden'}</button></div>`;
+    }).join("");
+  }
+  function toggleHomeSubject(id){
+    const h=getHiddenSubj(); const i=h.indexOf(id);
+    if(i>=0) h.splice(i,1); else h.push(id);
+    setHiddenSubj(h); renderHomeSubjects();
   }
   async function saveProfile(){
     const name=$("se-name").value.trim(), grade=$("se-grade").value;
@@ -1353,13 +1483,14 @@
     const subs=state.subjects;
     const gradeCur=(profile.grade==='P6'||profile.grade==='M2')?profile.grade:"";
     const subjOpts=[{v:"",label:"All"}].concat(subs.map(s=>({v:s.id,label:esc(s.name)})));
+    const preSub=state.pendingSubject||"";
     v.innerHTML = `
       <div class="sectiontitle">New quiz</div>
       <div class="tile">
         <div class="field"><label>Mode</label>
           <div class="themebtns" id="qz-mode" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${[["practice","✏️"],["exam","⏱️"],["study","📖"],["flashcard","🗂️"]].map(([md,ic],i)=>`<button data-v="${md}" class="${i===0?'on':''}">${ic} ${cap(md)}</button>`).join("")}</div>
         </div>
-        <div class="field"><label>Subject</label>${qzTap("qz-sub", subjOpts, "", "themebtns")}</div>
+        <div class="field"><label>Subject</label>${qzTap("qz-sub", subjOpts, preSub, "themebtns")}</div>
         <button type="button" id="qz-advbtn" onclick="toggleAdv()" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;padding:2px 0;width:auto;margin-bottom:8px">More options ▾</button>
         <div id="qz-adv" class="hidden">
           <div class="field" id="qz-st-field" style="display:none"><label>Sub-topic</label><div id="qz-st-host"></div></div>
@@ -1379,7 +1510,8 @@
     v.querySelectorAll("#qz-mode button").forEach(b=>b.onclick=()=>{ mode=b.dataset.v; v.querySelectorAll("#qz-mode button").forEach(x=>x.classList.toggle("on",x===b)); $("qz-time-wrap").style.display=(mode==='study'||mode==='flashcard')?'none':'block'; });
     v._mode=()=>mode;
     qzWireTaps(v, (id,val)=>{ if(id==="qz-sub") qzRenderSt(v, val); });
-    qzRenderSt(v, "");
+    qzRenderSt(v, preSub);
+    state.pendingSubject=null;
   }
   function qzmsg(t){ const m=$("qz-msg"); if(m){ m.className="msg err"; m.textContent=t; m.classList.remove("hidden"); } }
   function toggleAdv(){ const a=$("qz-adv"), b=$("qz-advbtn"); if(!a) return; const hidden=a.classList.toggle("hidden"); if(b) b.textContent = hidden ? "More options ▾" : "Fewer options ▴"; }
@@ -1511,31 +1643,36 @@
       ? `<div class="row" style="margin:6px 0 12px"><select id="st-owner" style="flex:1">${owners.map(o=>`<option value="${o.id}" ${o.id===state.bankOwner?"selected":""}>${o.id===me.id?"📊 My stats":"👤 "+esc(o.name)+"’s stats"}</option>`).join("")}</select></div>`
       : "";
     const wireStOwner=()=>{ const so=$("st-owner"); if(so) so.onchange=(e)=>{ state.bankOwner=e.target.value; viewStats(v); }; };
-    if(!answers||!answers.length){ v.innerHTML=ownerSel+`<div class="empty">No quiz data yet.<br>Take a quiz to see stats!</div>`; wireStOwner(); return; }
-    const total=answers.length, correct=answers.filter(a=>a.is_correct).length; const bySub={};
-    answers.forEach(a=>{ const s=subjectById(a.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(a.is_correct)bySub[n].c++; });
+    const sf = state.statsSubject ? subjectById(state.statsSubject) : null;
+    let useAns = answers||[];
+    if(sf) useAns = useAns.filter(a=>a.subject_id===state.statsSubject);
+    const filterChip = sf ? `<div class="tile" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:11px 14px"><div style="font-size:13.5px"><b>${esc(sf.name)}</b> only</div><button class="btn sm ghost" style="width:auto;flex:none" onclick="clearStatsSubject()">Show all ▸</button></div>` : "";
+    if(!useAns.length){ v.innerHTML=ownerSel+filterChip+`<div class="empty">No quiz data ${sf?("for "+esc(sf.name)):"yet"}.<br>Take a quiz to see stats!</div>`; wireStOwner(); return; }
+    const total=useAns.length, correct=useAns.filter(a=>a.is_correct).length; const bySub={};
+    useAns.forEach(a=>{ const s=subjectById(a.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(a.is_correct)bySub[n].c++; });
     const entries=Object.entries(bySub).map(([n,d])=>[n,d.c,d.t,d.t?Math.round(d.c/d.t*100):0]).sort((a,b)=>a[3]-b[3]);
     const weakest=entries[0], strongest=entries[entries.length-1];
     const days={}; (attempts||[]).forEach(at=>{ const d=(at.created_at||"").slice(0,10); days[d]=(days[d]||0)+(at.total||0); });
     const last=Object.entries(days).sort().slice(-14);
     const quizzes=(attempts||[]).length, activeDays=Object.keys(days).length;
     const maxN=Math.max(1,...last.map(([,n])=>n));
-    v.innerHTML=ownerSel+`
+    v.innerHTML=ownerSel+filterChip+`
       <div class="grid2">
-        <div class="stat"><div class="n">${Math.round(correct/total*100)}%</div><div class="l">Overall accuracy</div></div>
+        <div class="stat"><div class="n">${Math.round(correct/total*100)}%</div><div class="l">${sf?"Accuracy":"Overall accuracy"}</div></div>
         <div class="stat"><div class="n">${total}</div><div class="l">Questions answered</div></div>
       </div>
-      <div class="grid2" style="margin-top:12px">
+      ${sf?"":`<div class="grid2" style="margin-top:12px">
         <div class="stat"><div class="n">${quizzes}</div><div class="l">Quizzes taken</div></div>
         <div class="stat"><div class="n">${activeDays}</div><div class="l">Days active</div></div>
-      </div>
-      ${entries.length>1?`<div class="tile" style="margin-top:12px;font-size:13.5px"><b style="color:var(--ok)">Strongest:</b> ${esc(strongest[0])} (${strongest[3]}%)<br><b style="color:var(--danger)">Weakest:</b> ${esc(weakest[0])} (${weakest[3]}%)</div>`:""}
+      </div>`}
+      ${(!sf && entries.length>1)?`<div class="tile" style="margin-top:12px;font-size:13.5px"><b style="color:var(--ok)">Strongest:</b> ${esc(strongest[0])} (${strongest[3]}%)<br><b style="color:var(--danger)">Weakest:</b> ${esc(weakest[0])} (${weakest[3]}%)</div>`:""}
       <div class="sectiontitle">By subject</div>
       <div class="tile">${entries.map(e=>barRow(e[0],e[1],e[2])).join("")}</div>
-      <div class="sectiontitle">Recent activity</div>
-      <div class="tile">${last.length?last.map(([d,n])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--muted);width:48px">${esc(d.slice(5))}</span><div style="flex:1;background:var(--line);border-radius:4px;height:14px;overflow:hidden"><div style="height:100%;width:${Math.round(n/maxN*100)}%;background:var(--accent)"></div></div><span style="font-size:11px;color:var(--muted);width:26px;text-align:right">${n}</span></div>`).join(""):'<div class="empty">No attempts yet.</div>'}</div>`;
+      ${sf?"":`<div class="sectiontitle">Recent activity</div>
+      <div class="tile">${last.length?last.map(([d,n])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--muted);width:48px">${esc(d.slice(5))}</span><div style="flex:1;background:var(--line);border-radius:4px;height:14px;overflow:hidden"><div style="height:100%;width:${Math.round(n/maxN*100)}%;background:var(--accent)"></div></div><span style="font-size:11px;color:var(--muted);width:26px;text-align:right">${n}</span></div>`).join(""):'<div class="empty">No attempts yet.</div>'}</div>`}`;
     wireStOwner();
   }
+  function clearStatsSubject(){ state.statsSubject=null; viewStats($("view")); }
 
   /* ---------- NOTEPAD ---------- */
   async function openNotes(){
@@ -1650,6 +1787,8 @@
   window.gradeWritten=gradeWritten; window.revealCard=revealCard; window.nextQ=nextQ; window.prevQ=prevQ;
   window.jump=jump; window.toggleFlag=toggleFlag; window.togglePause=togglePause; window.exitQuiz=exitQuiz;
   window.submitQuiz=submitQuiz; window.openNotes=openNotes; window.saveNotes=saveNotes;
+  window.goNav=goNav; window.goSubject=goSubject; window.goSubjectAction=goSubjectAction;
+  window.clearStatsSubject=clearStatsSubject; window.toggleHomeSubject=toggleHomeSubject;
 
   /* ---------- start ---------- */
   ensureClient(); if(!client) loadLib();
