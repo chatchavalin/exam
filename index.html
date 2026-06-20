@@ -1688,7 +1688,9 @@
   let vocabWords=[], vocabState=null, vocabLevelSel=null;
   function vocabSub(){ return state.subjects.find(s=>(s.name||"").toLowerCase()==="english vocabulary"); }
   async function vocabSubjectId(){ const ex=vocabSub(); if(ex) return ex.id; const {data,error}=await client.from("subjects").insert({name:"English Vocabulary",color:"#7c4dff",default_time_per_q:30}).select("*").single(); if(error) throw error; state.subjects.push(data); return data.id; }
-  async function loadVocab(){ const v=vocabSub(); if(!v) return []; const {data}=await client.from("questions").select("id,stem,answer_text,grade").eq("subject_id",v.id).eq("type","written").order("created_at",{ascending:false}).limit(1000); return (data||[]).map(r=>({id:r.id,en:r.stem||"",th:r.answer_text||"",lv:(r.grade||"")})); }
+  const OXLEVEL=(()=>{const o={};["A1","A2","B1","B2"].forEach(lv=>OXFORD3000[lv].forEach(p=>{const k=(p[0]||"").toLowerCase(); if(!(k in o)) o[k]=lv;}));return o;})();
+  const OXTHAI=(()=>{const o={};["A1","A2","B1","B2"].forEach(lv=>OXFORD3000[lv].forEach(p=>{const k=(p[0]||"").toLowerCase(); if(p[1]&&!(k in o)) o[k]=p[1];}));return o;})();
+  async function loadVocab(){ const v=vocabSub(); if(!v) return []; const page=1000; let out=[], from=0; for(let i=0;i<30;i++){ const {data,error}=await client.from("questions").select("id,stem,answer_text,grade").eq("subject_id",v.id).eq("type","written").order("created_at",{ascending:false}).range(from,from+page-1); if(error||!data||!data.length) break; out=out.concat(data); if(data.length<page) break; from+=page; } return out.map(r=>({id:r.id,en:r.stem||"",th:r.answer_text||"",lv:(r.grade||OXLEVEL[(r.stem||"").trim().toLowerCase()]||"")})); }
   async function aiTextCall(prompt){
     const gk=appConfig.gemini_key, ck=appConfig.claude_key;
     if(gk){ const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(gk),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})}); const j=await r.json(); if(j.error) throw new Error(j.error.message); const c=(j.candidates||[])[0]||{}; return (((c.content||{}).parts)||[]).map(p=>p.text||"").join(""); }
@@ -1756,10 +1758,12 @@
     const pairs=[], enOnly=[];
     for(const ln of lines){ const mm=ln.match(/^(.+?)\s*(?:=|\t|:| - | — )\s*(.+)$/); if(mm && mm[2].trim()){ pairs.push({en:mm[1].trim(),th:mm[2].trim()}); } else { enOnly.push(ln); } }
     let aiErr="";
-    if(enOnly.length||img){ set("Asking AI for Thai…"); try{ pairs.push(...await vcAiPairs(enOnly,img)); }catch(e){ aiErr=e.message||String(e); } }
+    const enNeed=[];
+    for(const w of enOnly){ const th=OXTHAI[w.toLowerCase()]; if(th){ pairs.push({en:w,th}); } else { enNeed.push(w); } }
+    if(enNeed.length||img){ set("Asking AI for Thai…"); try{ pairs.push(...await vcAiPairs(enNeed,img)); }catch(e){ aiErr=e.message||String(e); } }
     const good=pairs.filter(p=>p.en&&p.th);
     if(!good.length){ set(aiErr?("Couldn't translate: "+aiErr):"Nothing to add — type some words or pick an image."); return; }
-    let lvMap={}; try{ set("Sorting by CEFR level…"); lvMap=await vcClassify(good.map(p=>p.en)); }catch(_){}
+    let lvMap={}; good.forEach(p=>{ const lv=OXLEVEL[(p.en||"").toLowerCase()]; if(lv) lvMap[(p.en||"").toLowerCase()]=lv; }); const _cls=good.map(p=>p.en).filter(en=>!OXLEVEL[(en||"").toLowerCase()]); if(_cls.length){ try{ set("Sorting by CEFR level…"); Object.assign(lvMap, await vcClassify(_cls)); }catch(_){} }
     try{ set("Saving "+good.length+" word(s)…"); const vid=await vocabSubjectId();
       const r=await client.from("questions").insert(good.map(p=>({subject_id:vid,subtopic_id:null,grade:(lvMap[(p.en||"").toLowerCase()]||null),type:"written",answer_mode:"single",stem:p.en,answer_text:p.th,created_by:me.id, owner_id:state.bankOwner}))); if(r.error) throw r.error;
       viewVocab($("view"));
