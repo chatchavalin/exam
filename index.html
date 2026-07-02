@@ -1276,10 +1276,10 @@
   let aiFigs=[];
   const AI_LABELS=["ก","ข","ค","ง","จ","ฉ"];
   const AI_PROMPT = "You are reading ONE page of a Thai school exam. Return ONLY a JSON object (no commentary, no code fences) shaped as {\"q\":[ ... ]}, listing every question on the page in order. Each item is ONE of:\n"
-    + "- A text/table question answerable from words alone: {\"k\":\"t\",\"sub\":\"<subject>\",\"gr\":\"<grade e.g. M1 or empty>\",\"stem\":\"<full question; write any small table out inline>\",\"ch\":[\"choice1\",\"choice2\",...],\"ans\":<0-based index of correct choice, or -1 if unknown>}\n"
-    + "- A written/short-answer question: {\"k\":\"t\",\"w\":1,\"sub\":..,\"gr\":..,\"stem\":\"..\",\"awr\":\"<answer>\"}\n"
+    + "- A text/table question answerable from words alone: {\"k\":\"t\",\"sub\":\"<subject>\",\"gr\":\"<grade e.g. M1 or empty>\",\"stem\":\"<full question; write any small table out inline>\",\"ch\":[\"choice1\",\"choice2\",...],\"ans\":<0-based index of correct choice, an ARRAY of indices if several are correct, or -1 if unknown>,\"exp\":\"<1-2 sentence explanation of WHY the answer is correct, in the same language as the question>\"}\n"
+    + "- A written/short-answer question: {\"k\":\"t\",\"w\":1,\"sub\":..,\"gr\":..,\"stem\":\"..\",\"awr\":\"<answer>\",\"exp\":\"<brief explanation>\"}\n"
     + "- A figure question that NEEDS a picture/diagram/graph/geometry to answer: {\"k\":\"f\",\"sub\":..,\"gr\":..,\"y0\":<top of the whole question as a 0-1 fraction of page height>,\"y1\":<bottom as 0-1 fraction>,\"nch\":<number of choices 2-6>,\"ans\":<0-based correct index or -1>}\n"
-    + "Rules: choices follow ก ข ค ง order. Keep any A/B/C/D items that belong to the question text INSIDE stem. Honor handwritten answer marks. For figure questions, y0/y1 must span the entire question including its picture and its choices. Output ONLY the JSON object.";
+    + "Rules: choices follow ก ข ค ง order. Keep any A/B/C/D items that belong to the question text INSIDE stem. Honor handwritten answer marks. If the correct answer is not marked, solve the question yourself and give your best answer with its explanation; use -1 only if truly impossible. For figure questions, y0/y1 must span the entire question including its picture and its choices. Output ONLY the JSON object.";
   function aimsg(t){ const s=$("ai-keymsg"); if(!s)return; s.className="msg"; s.textContent=t; s.classList.remove("hidden"); }
   async function saveAiKeys(){
     const g=$("ai-gem").value.trim(), c=$("ai-cla").value.trim();
@@ -1301,7 +1301,7 @@
     const cand=(j.candidates||[])[0]||{}; const parts=((cand.content||{}).parts)||[]; return parts.map(p=>p.text||"").join("");
   }
   async function aiCallClaude(key,b64,prompt){
-    const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}, body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:3000, messages:[{ role:"user", content:[{type:"text",text:prompt},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}}] }] }) });
+    const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}, body:JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:8000, messages:[{ role:"user", content:[{type:"text",text:prompt},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}}] }] }) });
     const j=await res.json(); if(j.error) throw new Error((j.error.message)||"Claude error");
     return (j.content||[]).map(p=>p.text||"").join("");
   }
@@ -1321,12 +1321,17 @@
         let raw=""; try{ raw = prov==="claude" ? await aiCallClaude(key,b64,AI_PROMPT) : await aiCallGemini(key,b64,AI_PROMPT); }
         catch(e){ set("AI error: "+(e.message||e)+" — if it mentions CORS/blocked, the browser can't call this provider directly; use Gemini or the chat workflow."); return; }
         let parsed=null; try{ parsed=aiParse(raw); }catch(_){ parsed=null; }
+        if(!parsed || !Array.isArray(parsed.q)){
+          set("Page "+(i+1)+" didn't parse cleanly — retrying…");
+          try{ raw = prov==="claude" ? await aiCallClaude(key,b64,AI_PROMPT) : await aiCallGemini(key,b64,AI_PROMPT); parsed=aiParse(raw); }catch(_){ parsed=null; }
+        }
         if(parsed && Array.isArray(parsed.q)){
           const H=canvases[i].height;
           for(const it of parsed.q){
             if(it.k==="f"){ const y0=Math.max(0,Math.min(1,it.y0||0))*H, y1=Math.max(0,Math.min(1,it.y1==null?1:it.y1))*H; if(y1-y0<8) continue;
-              aiFigs.push({ src:canvases[i], y0:Math.round(y0), y1:Math.round(y1), count:Math.max(2,Math.min(6,it.nch||4)), ans:(it.ans>=0?AI_LABELS[it.ans]:null), sub:it.sub||def, gr:it.gr||null }); }
-            else { const sub=it.sub||def, gr=it.gr||""; let blk="[Subject] "+sub+"\n[Grade] "+gr+"\n"; if(it.w){ blk+="W: "+(it.stem||"")+"\nANSWER: "+(it.awr||"")+"\n"; } else { blk+="Q: "+(it.stem||"")+"\n"; (it.ch||[]).forEach((c,idx)=>{ blk+=((it.ans===idx)?"*":"")+(AI_LABELS[idx]||String(idx+1))+") "+c+"\n"; }); } out+=(out?"\n":"")+blk+"\n"; txtN++; }
+              const fa=Array.isArray(it.ans)?it.ans[0]:it.ans;
+              aiFigs.push({ src:canvases[i], y0:Math.round(y0), y1:Math.round(y1), count:Math.max(2,Math.min(6,it.nch||4)), ans:(fa>=0?AI_LABELS[fa]:null), sub:it.sub||def, gr:it.gr||null }); }
+            else { const sub=it.sub||def, gr=it.gr||""; const okAns=Array.isArray(it.ans)?it.ans.filter(n=>n>=0):(it.ans>=0?[it.ans]:[]); let blk="[Subject] "+sub+"\n[Grade] "+gr+"\n"; if(it.w){ blk+="W: "+(it.stem||"")+"\nANSWER: "+(it.awr||"")+"\n"; } else { blk+="Q: "+(it.stem||"")+"\n"; (it.ch||[]).forEach((c,idx)=>{ blk+=(okAns.indexOf(idx)>=0?"*":"")+(AI_LABELS[idx]||String(idx+1))+") "+c+"\n"; }); } if(it.exp){ blk+="E: "+String(it.exp).replace(/\n+/g," ")+"\n"; } out+=(out?"\n":"")+blk+"\n"; txtN++; }
           }
         } else { out += (out?"\n\n":"") + (raw||"").replace(/```[a-z]*\n?/gi,"").trim(); }
       }
