@@ -1653,7 +1653,12 @@
     const w=x1-x0, hh=y1-y0;
     const d=ctx.getImageData(x0,y0,w,hh).data;
     const n=w*hh, mask=new Uint8Array(n);
-    for(let i=0;i<n;i++){ const j=i*4; if(.3*d[j]+.59*d[j+1]+.11*d[j+2]<150)mask[i]=1; }
+    for(let i=0;i<n;i++){ const j=i*4,r=d[j],g=d[j+1],b=d[j+2];
+      // Include faint coloured teacher ink even when its grayscale luminance is
+      // above the black-text threshold; otherwise thin red circles disappear.
+      const coloured=(Math.max(r,g,b)-Math.min(r,g,b)>28)&&((r>g+18&&r>b+18)||(b>r+18&&b>g+18));
+      if(.3*r+.59*g+.11*b<150||coloured)mask[i]=1;
+    }
     // connected components (4-neighbour flood fill)
     const comps=[]; const seen=new Uint8Array(n);
     for(let i=0;i<n;i++){
@@ -1701,6 +1706,17 @@
         for(let i2=0;i2<bw2*bh2;i2++){ if(bg(i2%bw2,(i2/bw2)|0)&&!seen2[i2])holes++; }
       }
       if(holes>=Math.max(15,Math.round(big.size*.8)))return "circle";
+      // A thin red circle often touches the printed option glyph, so its hole
+      // is no longer topologically isolated. Recognize that merged case using
+      // color + near-square outline geometry + low fill ratio; black X marks do
+      // not satisfy the chromatic requirement.
+      let colouredPixels=0;
+      for(let yy=hs;yy<=he;yy++)for(let xx=ws;xx<=we;xx++){
+        const di=(yy*w+xx)*4,rr=d[di],gg=d[di+1],bb=d[di+2];
+        if(Math.max(rr,gg,bb)-Math.min(rr,gg,bb)>28&&((rr>gg+18&&rr>bb+18)||(bb>rr+18&&bb>gg+18)))colouredPixels++;
+      }
+      const fill=big.size/Math.max(1,bw*bh), aspect=Math.min(bw,bh)/Math.max(bw,bh);
+      if(colouredPixels>=6&&bw>=12&&bh>=12&&aspect>=.55&&fill<.62)return "circle";
     }
     const big=comps[0];
     const bw=big.maxx-big.minx+1, bh=big.maxy-big.miny+1;
