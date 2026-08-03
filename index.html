@@ -13,7 +13,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root{
     --accent:#7c4dff; --accent2:#1fbf75;
@@ -183,6 +183,170 @@
   .homesubj .grow{ flex:1; min-width:0; font-weight:600; font-size:14px; }
   .togglepill{ border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:20px; padding:6px 14px; font-weight:600; font-size:12.5px; flex:none; width:auto; }
   .togglepill.on{ border-color:var(--accent); color:var(--accent); background:rgba(124,77,255,.08); }
+
+  /* ---------- EXAMFORGE 2.0 VISUAL SYSTEM ---------- */
+  :root{
+    --accent:#ff684f; --accent2:#2bb7a4; --ink:#17324d; --muted:#718096;
+    --bg:#f6f8f5; --card:#ffffff; --line:#dfe8e3; --danger:#d95568; --ok:#159a78; --warn:#d99a27;
+    --radius:20px; --shadow:0 18px 45px -28px rgba(23,50,77,.34); --navw:232px;
+    --fd:"Space Grotesk","Noto Sans Thai",system-ui,sans-serif; --fb:"DM Sans","Noto Sans Thai",system-ui,sans-serif;
+  }
+  [data-theme="dark"]{ --accent:#ff806a; --accent2:#51d0bc; --ink:#eff8f5; --muted:#a3b7b5; --bg:#0d1d29; --card:#142a38; --line:#284352; --shadow:0 18px 50px -28px rgba(0,0,0,.75); }
+  [data-theme="green"]{ --accent:#138d70; --accent2:#35c6aa; --ink:#123b34; --muted:#608279; --bg:#f0f8f4; --card:#fff; --line:#d3e8df; }
+  [data-theme="purple"]{ --accent:#7b5cff; --accent2:#ed7b9a; --ink:#2b2348; --muted:#786f91; --bg:#f7f4fb; --card:#fff; --line:#e5def1; }
+  body{ background:radial-gradient(circle at 88% -8%,rgba(43,183,164,.13),transparent 28rem),radial-gradient(circle at 0 18%,rgba(255,104,79,.08),transparent 25rem),var(--bg); }
+  h1,h2,h3{ letter-spacing:-.035em; }
+  button,input,select,textarea{ -webkit-tap-highlight-color:transparent; }
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{ outline:3px solid color-mix(in srgb,var(--accent) 30%,transparent); outline-offset:2px; }
+  .btn{ border-radius:13px; border:1px solid transparent; min-height:44px; transition:transform .16s ease,box-shadow .16s ease,background .16s ease; }
+  .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 20px -14px var(--ink); }
+  .btn.primary{ background:var(--ink); color:#fff; box-shadow:0 10px 22px -15px var(--ink); }
+  .btn.ghost{ color:var(--accent); }
+  .tile,.stat{ border-radius:22px; box-shadow:var(--shadow); }
+  .tile{ padding:20px; }
+  .sectiontitle{ color:var(--ink); font-size:11px; letter-spacing:.12em; margin:28px 2px 11px; }
+  .sectiontitle::after{ content:""; display:block; width:24px; height:3px; border-radius:3px; background:var(--accent); margin-top:7px; }
+  .top{ height:76px; padding:18px 28px 14px; background:color-mix(in srgb,var(--bg) 88%,transparent); border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent); backdrop-filter:blur(16px); }
+  .top h2{ font-size:23px; font-weight:700; }
+  .wrap{ max-width:1120px; padding:20px 28px 46px; }
+  .nav{ background:color-mix(in srgb,var(--card) 92%,transparent); backdrop-filter:blur(18px); }
+  .nav button{ min-height:48px; border-radius:14px; transition:background .16s ease,color .16s ease,transform .16s ease; }
+  .nav button.on{ color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,transparent); }
+  .nav button:active{ transform:scale(.97); }
+  .nav svg{ width:21px; height:21px; }
+  .av{ background:var(--ink); box-shadow:0 8px 18px -12px var(--ink); }
+  .pcard{ padding:18px; }
+  .stat{ padding:18px; }
+  .stat .n{ color:var(--ink); font-size:30px; }
+  .chip{ background:color-mix(in srgb,var(--accent2) 14%,var(--card)); color:var(--ink); }
+  .listitem{ padding:14px 0; }
+  .listitem .grow .t{ font-size:15px; }
+  .empty{ padding:44px 20px; }
+  .center{ position:relative; overflow:hidden; background:radial-gradient(circle at 85% 12%,rgba(43,183,164,.23),transparent 24rem),radial-gradient(circle at 10% 92%,rgba(255,104,79,.15),transparent 28rem),var(--bg); }
+  .center::before{ content:"LEARN  •  PRACTISE  •  GROW"; position:absolute; top:11%; left:7%; color:color-mix(in srgb,var(--ink) 10%,transparent); font:700 clamp(28px,7vw,78px)/1 var(--fd); letter-spacing:.14em; transform:rotate(-8deg); pointer-events:none; }
+  .card{ width:min(100%,480px); max-width:480px; padding:38px 34px; border-radius:28px; box-shadow:0 30px 80px -38px rgba(23,50,77,.5); position:relative; z-index:1; }
+  .brand{ gap:12px; margin-bottom:27px; }
+  .spark{ width:40px; height:40px; border-radius:13px; background:var(--accent); box-shadow:0 9px 18px -11px var(--accent); }
+  .wm{ font-size:21px; }
+  .hellobar{ align-items:flex-end; margin:5px 0 19px; }
+  .hellobar .hi{ font-size:30px; line-height:1.05; }
+  .hellobar .sub{ font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:7px; }
+  .streakpill{ border-color:color-mix(in srgb,var(--accent) 18%,var(--line)); background:var(--card); color:var(--ink); box-shadow:var(--shadow); padding:10px 14px; }
+  .streakpill:first-letter{ color:var(--accent); }
+  .pickhead{ margin:27px 2px 12px; }
+  .pickhead h3{ font-size:20px; }
+  .pickhead .mng{ color:var(--accent); }
+  .subjgrid{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+  .subjcard{ min-height:132px; border-radius:22px; padding:19px 18px; border-color:var(--line); box-shadow:var(--shadow); transition:transform .18s ease,box-shadow .18s ease; }
+  .subjcard::before{ width:7px; background:var(--sc,var(--accent)); }
+  .subjcard::after{ content:""; position:absolute; right:-26px; bottom:-36px; width:100px; height:100px; border-radius:50%; background:color-mix(in srgb,var(--sc,var(--accent)) 12%,transparent); }
+  .subjcard:hover{ transform:translateY(-3px); box-shadow:0 22px 40px -27px var(--ink); }
+  .subjcard .sname{ font-size:17px; }
+  .subjcard .scount{ margin-top:auto; padding-top:18px; }
+  .subjcard .sgo{ z-index:1; background:color-mix(in srgb,var(--sc,var(--accent)) 16%,transparent); }
+  .mission-card{ position:relative; overflow:hidden; padding:24px; color:#fff; background:var(--ink); border-radius:24px; box-shadow:0 22px 42px -27px var(--ink); }
+  .mission-card::after{ content:""; position:absolute; width:170px; height:170px; border:1px solid rgba(255,255,255,.18); border-radius:50%; right:-46px; top:-56px; box-shadow:0 0 0 22px rgba(255,255,255,.04),0 0 0 44px rgba(255,255,255,.025); }
+  .mission-card .mission-kicker{ color:#8de3d3; font-size:10px; font-weight:700; letter-spacing:.16em; }
+  .mission-card h3{ font-size:24px; margin:8px 0 6px; max-width:520px; }
+  .mission-card p{ color:rgba(255,255,255,.72); font-size:13px; margin:0; max-width:500px; }
+  .mission-card .mission-foot{ display:flex; align-items:center; gap:12px; margin-top:19px; color:rgba(255,255,255,.74); font-size:12px; }
+  .mission-card .mission-dot{ width:9px; height:9px; background:var(--accent); border-radius:50%; box-shadow:0 0 0 5px rgba(255,104,79,.16); }
+  .home-quick{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .home-quick button{ min-height:64px; text-align:left; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:18px; padding:14px 16px; font-weight:700; box-shadow:var(--shadow); }
+  .home-quick button span{ display:block; color:var(--muted); font-size:11px; font-weight:500; margin-top:3px; }
+  .subjhero{ border-radius:24px; padding:21px; box-shadow:var(--shadow); }
+  .subjhero .badge{ width:54px; height:54px; border-radius:17px; background:var(--sc,var(--accent)); }
+  .actcard{ border-radius:20px; padding:19px; box-shadow:var(--shadow); }
+  .actcard.go{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .actcard.go .desc,.actcard.go .arr{ color:rgba(255,255,255,.7); }
+  .actcard.go .icn{ background:var(--accent); }
+  .bank-head,.quiz-intro,.result-hero{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin:6px 0 18px; }
+  .eyebrow{ color:var(--accent); font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+  .bank-title,.quiz-intro h3{ font-size:30px; margin-top:5px; }
+  .bank-sub,.quiz-intro p{ margin:7px 0 0; color:var(--muted); font-size:13px; }
+  .bank-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .bank-actions .btn{ width:auto; }
+  .bank-toolbar{ padding:12px; border-radius:18px; background:color-mix(in srgb,var(--card) 80%,transparent); border:1px solid var(--line); box-shadow:var(--shadow); }
+  .bank-toolbar .row{ align-items:center; }
+  #bk-search{ min-height:46px; border-radius:13px; background:var(--bg); }
+  .question-row,.listitem{ border-radius:14px; }
+  .question-row:hover,.listitem:hover{ background:color-mix(in srgb,var(--accent) 4%,transparent); }
+  .quiz-intro{ align-items:flex-start; }
+  .quiz-intro .quiz-mark{ width:62px; height:62px; border-radius:22px; background:var(--accent); color:#fff; display:grid; place-items:center; font:700 26px var(--fd); flex:none; box-shadow:0 14px 25px -16px var(--accent); }
+  .mode-grid{ display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px!important; }
+  .mode-grid button{ min-height:83px; border:1px solid var(--line)!important; background:var(--card)!important; color:var(--ink)!important; border-radius:16px!important; padding:12px 8px!important; font-weight:700!important; }
+  .mode-grid button.on{ color:#fff!important; background:var(--ink)!important; border-color:var(--ink)!important; box-shadow:0 10px 18px -14px var(--ink); }
+  .mode-grid button:first-letter{ font-size:20px; }
+  .quiz-frame{ max-width:760px; margin:0 auto; }
+  .quiz-topline{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .quiz-topline .quiz-counter{ font:700 15px var(--fd); color:var(--ink); }
+  .quiz-topline .quiz-timer{ margin-left:auto; color:var(--accent); font:700 18px var(--fd); }
+  .quiz-topline .btn{ min-width:44px; padding:8px 11px; }
+  .quiz-progress{ height:7px!important; margin:0 0 16px!important; background:var(--line)!important; }
+  .quiz-progress>div{ background:var(--accent)!important; border-radius:9px; }
+  .quiz-stage{ border-radius:26px!important; padding:24px!important; box-shadow:0 25px 55px -35px var(--ink)!important; }
+  .quiz-stage .opt{ min-height:56px; padding:15px 16px; border-radius:16px; font-size:15px; transition:transform .14s ease,border .14s ease,background .14s ease; }
+  .quiz-stage .opt:hover{ transform:translateX(3px); }
+  .quiz-stage .opt .ol{ width:31px; height:31px; border-radius:10px; background:color-mix(in srgb,var(--accent) 13%,var(--card)); color:var(--accent); }
+  .quiz-stage .opt.sel{ background:color-mix(in srgb,var(--accent) 10%,var(--card)); border-color:var(--accent); }
+  .quiz-stage .opt.correct{ background:color-mix(in srgb,var(--ok) 12%,var(--card)); }
+  .quiz-bottom{ align-items:center; }
+  .quiz-bottom .btn{ min-height:48px; }
+  .gridnav{ gap:7px; }
+  .gn{ width:34px; height:34px; border-radius:11px; }
+  .gn.done{ background:var(--ink); border-color:var(--ink); }
+  .gn.cur{ color:var(--accent); border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent); }
+  .result-hero{ align-items:center; padding:24px; color:#fff; background:var(--ink); border-radius:26px; box-shadow:0 24px 45px -30px var(--ink); }
+  .result-hero h3{ font-size:27px; }
+  .result-hero p{ color:rgba(255,255,255,.7); margin:6px 0 0; font-size:13px; }
+  .result-score{ width:100px; height:100px; border:8px solid var(--accent); border-radius:50%; display:grid; place-items:center; font:700 26px var(--fd); flex:none; }
+  .result-actions{ display:flex; gap:10px; margin:16px 0 26px; }
+  .result-actions .btn{ flex:1; }
+  .ii-panel{ border-radius:20px; background:color-mix(in srgb,var(--accent2) 8%,var(--card)); }
+  .ii-candidate{ border-radius:20px; box-shadow:var(--shadow); }
+  .ii-upload{ display:grid; place-items:center; gap:5px; padding:22px 16px; margin:2px 0 14px; border:1.5px dashed color-mix(in srgb,var(--accent) 55%,var(--line)); border-radius:18px; background:color-mix(in srgb,var(--accent) 5%,var(--card)); color:var(--ink); cursor:pointer; text-align:center; transition:background .16s ease,border .16s ease,transform .16s ease; }
+  .ii-upload:hover{ background:color-mix(in srgb,var(--accent) 10%,var(--card)); border-color:var(--accent); transform:translateY(-1px); }
+  .ii-upload b{ font-size:14px; }
+  .ii-upload span:not(.ii-upload-icon){ color:var(--muted); font-size:11.5px; }
+  .ii-upload-icon{ width:34px; height:34px; display:grid; place-items:center; border-radius:12px; background:var(--accent); color:#fff; font-size:21px; }
+  .ii-upload input{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+  .sheet{ border-radius:26px 26px 0 0; padding:26px 22px calc(24px + env(safe-area-inset-bottom)); }
+  .sheet h3{ font-size:23px; }
+  .modal{ background:rgba(13,29,41,.58); backdrop-filter:blur(8px); }
+  @media (min-width:920px){
+    #app{ max-width:none; margin:0 0 0 var(--navw); padding-bottom:30px; }
+    .top{ padding-left:38px; padding-right:38px; }
+    .wrap{ margin:0 auto; }
+    .nav{ top:0; bottom:0; left:0; right:auto; width:var(--navw); flex-direction:column; justify-content:flex-start; align-items:stretch; gap:8px; padding:28px 14px; border-top:0; border-right:1px solid var(--line); }
+    .nav::before{ content:"ExamForge"; display:block; color:var(--ink); font:700 21px var(--fd); padding:6px 16px 28px; }
+    .nav::after{ content:"A better way to practise"; color:var(--muted); font-size:11px; padding:18px 16px; margin-top:auto; }
+    .nav button{ flex:none; flex-direction:row; justify-content:flex-start; gap:13px; padding:13px 16px; font-size:14px; }
+    .nav button.on{ background:var(--ink); color:#fff; }
+    .nav button.on svg{ color:#8de3d3; }
+    .top-av{ margin-left:auto; }
+    .home-quick{ max-width:520px; }
+  }
+  @media (max-width:700px){
+    .center{ padding:16px; }
+    .center .card{ width:calc(100vw - 32px); max-width:none; }
+    .top{ height:68px; padding:15px 17px 11px; }
+    .top h2{ font-size:20px; }
+    .wrap{ padding:15px 16px 35px; }
+    .hellobar .hi{ font-size:25px; }
+    .subjgrid{ grid-template-columns:1fr 1fr; gap:10px; }
+    .subjcard{ min-height:120px; padding:16px 14px; }
+    .subjcard .sname{ font-size:15px; }
+    .bank-head,.quiz-intro,.result-hero{ align-items:flex-start; flex-direction:column; }
+    .bank-actions{ justify-content:flex-start; }
+    .bank-actions .btn{ flex:1; }
+    .mode-grid{ grid-template-columns:1fr 1fr; }
+    .quiz-stage{ padding:18px!important; }
+    .result-hero{ flex-direction:row; align-items:center; }
+    .result-score{ width:82px; height:82px; font-size:22px; }
+    .home-quick{ grid-template-columns:1fr; }
+  }
+  @media (max-width:390px){ .subjgrid{ grid-template-columns:1fr; } .card{ padding:30px 22px; } }
+  @media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation-duration:.001ms!important; transition-duration:.001ms!important; } }
 </style>
 </head>
 <body>
@@ -190,12 +354,12 @@
   <div id="screen-auth" class="center">
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge <span style="font-weight:400;opacity:.6;font-size:.6em">by Ben</span></span></div>
-      <h1 style="font-size:24px;margin-bottom:6px">Sign in</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Private study space. Sign in, or create your account if a parent has added your email.</p>
+      <h1 style="font-size:27px;margin-bottom:6px">Welcome back</h1>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Your private study space is ready. Sign in to pick up where you left off.</p>
       <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="you@gmail.com" /></div>
       <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password" /></div>
-      <button class="btn primary" id="send-btn" style="width:100%">Sign in</button>
-      <button class="btn ghost" id="signup-btn" style="width:100%;margin-top:8px">Create account</button>
+      <button class="btn primary" id="send-btn" style="width:100%">Enter my study space →</button>
+      <button class="btn ghost" id="signup-btn" style="width:100%;margin-top:8px">Create a new account</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px;color:var(--muted);font-size:12px"><span style="flex:1;height:1px;background:var(--muted);opacity:.3"></span>or<span style="flex:1;height:1px;background:var(--muted);opacity:.3"></span></div>
       <button class="btn ghost" id="google-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8a12 12 0 1 1 0-24c3 0 5.8 1.1 7.9 3l5.7-5.7A20 20 0 1 0 24 44c11 0 19.6-8 19.6-20 0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8A12 12 0 0 1 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7A20 20 0 0 0 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2A12 12 0 0 1 12.7 28l-6.6 5.1A20 20 0 0 0 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2c-.4.4 6.6-4.8 6.6-14.8 0-1.3-.1-2.3-.4-3.5z"/></svg>
@@ -219,8 +383,8 @@
   <div id="screen-setup" class="center hidden">
     <div class="card">
       <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></span><span class="wm">ExamForge <span style="font-weight:400;opacity:.6;font-size:.6em">by Ben</span></span></div>
-      <h1 style="font-size:23px;margin-bottom:4px">Set up your profile</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Just a couple of things to personalise your space.</p>
+      <h1 style="font-size:25px;margin-bottom:4px">Make it yours</h1>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 18px">A name, a grade, and a colour — then your study space is ready.</p>
       <div class="field"><label>Your name</label><input id="su-name" placeholder="e.g. Ben" /></div>
       <div class="field"><label>Grade</label>
         <select id="su-grade"><option value="">Select…</option><option>P6</option><option>M2</option><option>Other</option></select>
@@ -301,7 +465,7 @@
       const {error}=await c.auth.signInWithPassword({email,password});
       if(error) authMsg("err","Login failed: "+error.message);
     }catch(e){ authMsg("err","Something went wrong: "+(e.message||e)); }
-    $("send-btn").disabled=false; $("send-btn").textContent="Sign in";
+    $("send-btn").disabled=false; $("send-btn").textContent="Enter my study space →";
   });
   $("signup-btn").addEventListener("click", async ()=>{
     $("auth-msg").classList.add("hidden");
@@ -317,7 +481,7 @@
       else if(data && data.session){ authMsg("ok","Account created — signing you in…"); }
       else { authMsg("ok","Account created. Check your email to confirm, then sign in."); }
     }catch(e){ authMsg("err","Something went wrong: "+(e.message||e)); }
-    $("signup-btn").disabled=false; $("signup-btn").textContent="Create account";
+    $("signup-btn").disabled=false; $("signup-btn").textContent="Create a new account";
   });
   $("password").addEventListener("keydown",e=>{ if(e.key==="Enter") $("send-btn").click(); });
   $("email").addEventListener("keydown",e=>{ if(e.key==="Enter") $("password").focus(); });
@@ -488,6 +652,7 @@
     const ownerSel = (profile.role!=="child" && (state.kids||[]).length)
       ? `<div class="row" style="margin:2px 0 14px"><select id="hm-owner" style="flex:1">${owners.map(o=>`<option value="${o.id}" ${o.id===state.bankOwner?"selected":""}>${o.id===me.id?"👤 Me":"👤 "+esc(o.name)}</option>`).join("")}</select></div>`
       : "";
+    const hasQuestions=Object.values(counts).some(Boolean);
     const cards = subs.map(s=>{
       const n=counts[s.id]||0; const col=s.color||"#7c4dff";
       return `<button class="subjcard" style="--sc:${esc(col)}" onclick="goSubject('${s.id}')">
@@ -498,15 +663,21 @@
     }).join("");
     v.innerHTML = `
       <div class="hellobar">
-        <div><div class="sub">${greet()},</div><div class="hi">${esc(profile.display_name||"there")} 👋</div></div>
-        <div class="streakpill">🔥 ${streak}<span style="color:var(--muted);font-weight:600;font-size:11px">day${streak===1?"":"s"}</span></div>
+        <div><div class="sub">${greet()} · your study space</div><div class="hi">${esc(profile.display_name||"there")} <span aria-hidden="true">👋</span></div></div>
+        <div class="streakpill"><span aria-hidden="true">🔥</span> ${streak}<span style="color:var(--muted);font-weight:600;font-size:11px">day${streak===1?"":"s"}</span></div>
       </div>
       ${ownerSel}
-      <div class="pickhead"><h3>Pick a subject</h3><button class="mng" onclick="go('settings')">Edit ▸</button></div>
+      <div class="mission-card">
+        <div class="mission-kicker">TODAY'S NEXT MOVE</div>
+        <h3>${hasQuestions?"Choose a subject and make one small win.":"Build your first study mission."}</h3>
+        <p>${hasQuestions?"A short practice session is enough. Pick a subject below and keep your streak moving.":"Add a subject or import an exam. We’ll turn it into a clear, friendly practice path."}</p>
+        <div class="mission-foot"><span class="mission-dot"></span><span>${hasQuestions?"Your bank is ready when you are.":"Start with one subject and one question."}</span></div>
+      </div>
+      <div class="pickhead"><h3>${hasQuestions?"Pick a subject":"Set up your subjects"}</h3><button class="mng" onclick="go('settings')">Manage ▸</button></div>
       ${subs.length ? `<div class="subjgrid">${cards}</div>`
-        : `<div class="tile"><div style="font-weight:600;margin-bottom:4px">No subjects yet</div><div style="color:var(--muted);font-size:13.5px;margin-bottom:12px">Add a subject and some questions to get started.</div><button class="btn primary" onclick="go('bank')">Go to question bank</button></div>`}
+        : `<div class="tile"><div style="font-weight:700;font-size:17px;margin-bottom:5px">Your first subject is waiting</div><div style="color:var(--muted);font-size:13.5px;margin-bottom:14px">Create a subject, then add questions manually or import a whole exam.</div><button class="btn primary" onclick="go('bank')">Open question bank →</button></div>`}
       ${subs.length && subs.length<state.subjects.length ? `<div style="text-align:center;margin-top:14px"><button class="btn sm ghost" onclick="go('settings')">Some subjects are hidden — manage in You</button></div>` : ""}
-      ${subs.length ? `<div style="text-align:center;margin-top:16px"><button class="btn sm ghost" onclick="go('bank')">＋ Add or manage questions</button></div>` : ""}`;
+      ${subs.length ? `<div class="home-quick"><button onclick="go('bank')">＋ Build the bank<span>Add, import, or clean questions</span></button><button onclick="go('quiz')">▶ Quick practice<span>Start a session from your bank</span></button></div>` : ""}`;
     const ho=$("hm-owner"); if(ho) ho.onchange=(e)=>{ state.bankOwner=e.target.value; viewHome(v); };
   }
   function goSubject(id){ state.pendingSubject=id; go("subjectactions"); }
@@ -519,15 +690,15 @@
     (async()=>{
       const counts=await subjectCounts(); const n=counts[s.id]||0;
       v.innerHTML = `
-        <button class="backlink" onclick="go('dashboard')">‹ All subjects</button>
+        <button class="backlink" onclick="go('dashboard')">‹ Back to subjects</button>
         <div class="subjhero" style="--sc:${esc(col)}">
           <div class="badge">${esc((s.name||"?").trim().slice(0,1).toUpperCase())}</div>
-          <div><div class="sname">${esc(s.name)}</div><div class="scount">${n} question${n===1?"":"s"} in bank</div></div>
+          <div><div class="eyebrow" style="color:var(--sc)">SUBJECT MISSION</div><div class="sname">${esc(s.name)}</div><div class="scount">${n} question${n===1?"":"s"} ready to practise</div></div>
         </div>
-        <div class="sectiontitle">What would you like to do?</div>
-        <button class="actcard go" onclick="goSubjectAction('quiz')"><span class="icn">▶</span><span><span class="ttl">Do a quiz</span><span class="desc">Practice, exam, study or flashcards</span></span><span class="arr">›</span></button>
-        <button class="actcard" onclick="goSubjectAction('add')"><span class="icn">✏️</span><span><span class="ttl">Add a quiz</span><span class="desc">Add new questions to this subject</span></span><span class="arr">›</span></button>
-        <button class="actcard" onclick="goSubjectAction('stats')"><span class="icn">📊</span><span><span class="ttl">See stats</span><span class="desc">Accuracy and progress for ${esc(s.name)}</span></span><span class="arr">›</span></button>`;
+        <div class="sectiontitle">Choose your next move</div>
+        <button class="actcard go" onclick="goSubjectAction('quiz')"><span class="icn">▶</span><span><span class="ttl">Start a session</span><span class="desc">Practice, exam, study or flashcards</span></span><span class="arr">›</span></button>
+        <button class="actcard" onclick="goSubjectAction('add')"><span class="icn">＋</span><span><span class="ttl">Build this bank</span><span class="desc">Add, import, or clean new questions</span></span><span class="arr">›</span></button>
+        <button class="actcard" onclick="goSubjectAction('stats')"><span class="icn">↗</span><span><span class="ttl">See the progress</span><span class="desc">Accuracy and practice history for ${esc(s.name)}</span></span><span class="arr">›</span></button>`;
     })();
   }
   function goSubjectAction(kind){
@@ -548,14 +719,16 @@
       ? `<div class="tile" style="background:var(--accent);color:#fff;padding:10px 12px;margin-bottom:10px;font-size:13px">You're building <b>${esc((state.kids.find(k=>k.id===state.bankOwner)||{}).name||"a kid")}</b>'s bank. New questions go to them.</div>`
       : "";
     v.innerHTML = `
+      <div class="bank-head">
+        <div><div class="eyebrow">YOUR QUESTION BANK</div><div class="bank-title">Make practice personal.</div><div class="bank-sub">Build a focused collection for every subject, then turn it into a session in one tap.</div></div>
+        <div class="bank-actions"><button class="btn primary" onclick="openQ()">＋ Add question</button><button class="btn" onclick="openImageImport()">▣ Clean exam</button></div>
+      </div>
       ${ownerSel}
       ${banner}
-      <div class="row" style="margin:6px 0 12px">
-        <select id="bk-filter"><option value="">All subjects</option>${state.subjects.map(s=>`<option value="${s.id}" ${s.id===bankFilter?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
-        <button class="btn primary" style="flex:none" onclick="openQ()">+ Add</button>
+      <div class="bank-toolbar">
+        <div class="row"><select id="bk-filter"><option value="">All subjects</option>${state.subjects.map(s=>`<option value="${s.id}" ${s.id===bankFilter?"selected":""}>${esc(s.name)}</option>`).join("")}</select><input id="bk-search" placeholder="Search your questions…" oninput="bankSearchInput(this.value)"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" onclick="openImport()">⚡ Bulk import</button><button class="btn sm" onclick="go2('subjects')">Manage subjects &amp; topics →</button></div>
       </div>
-      <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="go2('subjects')">Manage subjects &amp; topics →</button><button class="btn sm ghost" onclick="openImport()">Bulk import →</button><button class="btn sm ghost" onclick="openImageImport()">Image import →</button></div>
-      <input id="bk-search" placeholder="🔍 Search questions…" oninput="bankSearchInput(this.value)" style="width:100%;margin-bottom:10px">
       <div id="qlist"><div class="empty">Loading…</div></div>`;
     const bo=$("bk-owner"); if(bo) bo.onchange=(e)=>{ state.bankOwner=e.target.value; viewBank(v); };
     $("bk-filter").onchange = (e)=>{ bankFilter=e.target.value; loadQ(); };
@@ -871,10 +1044,10 @@
     const m=document.createElement("div"); m.className="modal";
     m.innerHTML=`<div class="sheet" style="max-height:88vh;overflow:auto">
       <button class="close" onclick="closeModal()">×</button>
-      <h3>Clean exam import</h3>
-      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Turn a photographed or scanned exam into clean practice questions. The original page is kept so you can open it later for each question.</p>
+      <div class="eyebrow">QUESTION BUILDER</div><h3>Turn an exam into practice.</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">We’ll keep the untouched page, clean the distractions, and let you review every question before it enters the bank.</p>
       <div class="ii-panel">
-        <div class="ii-title">Cleanup controls</div>
+        <div class="ii-step" style="margin-top:0"><div class="num">1</div><div><b>Choose what to clean</b><span>Start conservatively. You can preview every crop and erase anything extra by hand.</span></div></div>
         <div class="ii-help">These run locally in your browser. The original file is never overwritten.</div>
         <div class="ii-controls">
           <label class="ii-control"><input type="checkbox" id="ii-handwriting" onchange="setImageCleanup('handwriting',this.checked)"> Remove black handwriting &amp; marks <span class="chip">review recommended</span></label>
@@ -884,9 +1057,9 @@
           <div class="row"><select id="ii-labelset" onchange="setImageCleanup('set',this.value)"><option value="thai">Thai labels · ก ข ค ง</option><option value="latin">Latin labels · A B C D</option></select><button class="btn sm" onclick="exportCleanPdf()" style="flex:none">Export cleaned PDF</button></div>
         </div>
       </div>
-      <div class="ii-step"><div class="num">1</div><div><b>Load your file</b><span>PDF pages and photos are supported. Move the cut lines if the automatic draft is off.</span></div></div>
+      <div class="ii-step"><div class="num">2</div><div><b>Load your file</b><span>PDF pages and photos are supported. Move the cut lines if the automatic draft is off.</span></div></div>
       <div class="row"><div class="field"><label>Subject</label><select id="ii-sub">${subsOpt}</select></div><div class="field"><label>Grade</label><select id="ii-grade"><option value="">—</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div></div>
-      <div class="field"><label>PDF or image</label><input id="ii-file" type="file" accept="image/*,application/pdf" onchange="handleImgFile(event)"></div>
+      <label class="ii-upload" for="ii-file"><span class="ii-upload-icon">＋</span><b>Choose a photo or PDF</b><span>Tap to browse · multi-page PDFs supported</span><input id="ii-file" type="file" accept="image/*,application/pdf" onchange="handleImgFile(event)"></label>
       <div id="ii-stat" style="font-size:12.5px;color:var(--muted);margin-bottom:8px"></div>
       <div id="ii-editwrap" class="hidden">
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
@@ -903,7 +1076,7 @@
       </div>
       <div id="ii-review" class="hidden">
         <div class="ii-panel">
-          <div class="ii-title">2 · Review the cleaned questions</div>
+          <div class="ii-step" style="margin-top:0"><div class="num">3</div><div><b>Review each question</b><span>Confirm the marked answer, check the clean crop, and fix anything uncertain before saving.</span></div></div>
           <div class="ii-help">The app guesses the marked answer from extra ink around a choice. Tap a label to correct it. Use the brush for any handwriting the automatic cleanup misses.</div>
           <div class="ii-actions"><button class="btn sm" onclick="detectAllImageAnswers()">Detect marked answers</button><button class="btn sm" onclick="exportCleanPdf()">Export cleaned PDF</button></div>
         </div>
@@ -1249,6 +1422,7 @@
   /* ---------- SETTINGS ---------- */
   function viewSettings(v){
     v.innerHTML = `
+      <div class="bank-head"><div><div class="eyebrow">YOUR SPACE</div><div class="bank-title">Make ExamForge yours.</div><div class="bank-sub">Profiles, kids, themes, reports, and backups — all in one calm place.</div></div><div class="quiz-mark" style="background:var(--ink);color:#fff;width:58px;height:58px;border-radius:19px;display:grid;place-items:center;font:700 23px var(--fd)">✦</div></div>
       <div class="tile pcard">
         <label for="av-file" style="cursor:pointer;margin:0">
           <div class="av" style="width:58px;height:58px;font-size:22px">${profile.avatar_url?`<img class="av" src="${profile.avatar_url}">`:initials()}</div>
@@ -1658,26 +1832,26 @@
     const subjOpts=[{v:"",label:"All"}].concat(subs.map(s=>({v:s.id,label:esc(s.name)})));
     const preSub=state.pendingSubject||"";
     v.innerHTML = `
-      <div class="sectiontitle">New quiz</div>
-      <div class="tile">
-        <div class="field"><label>Mode</label>
-          <div class="themebtns" id="qz-mode" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${[["practice","✏️"],["exam","⏱️"],["study","📖"],["flashcard","🗂️"]].map(([md,ic],i)=>`<button data-v="${md}" class="${i===0?'on':''}">${ic} ${cap(md)}</button>`).join("")}</div>
+      <div class="quiz-intro"><div><div class="eyebrow">CHOOSE YOUR MISSION</div><h3>How do you want to practise?</h3><p>Pick a pace that fits today. You can always pause or come back to a question.</p></div><div class="quiz-mark" aria-hidden="true">▶</div></div>
+      <div class="tile quiz-setup">
+        <div class="field"><label>Session style</label>
+          <div class="themebtns mode-grid" id="qz-mode">${[["practice","✏️"],["exam","⏱️"],["study","📖"],["flashcard","🗂️"]].map(([md,ic],i)=>`<button data-v="${md}" class="${i===0?'on':''}">${ic}<br><span>${cap(md)}</span></button>`).join("")}</div>
         </div>
         <div class="field"><label>Subject</label>${qzTap("qz-sub", subjOpts, preSub, "themebtns")}</div>
-        <button type="button" id="qz-advbtn" onclick="toggleAdv()" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;padding:2px 0;width:auto;margin-bottom:8px">More options ▾</button>
+        <button type="button" id="qz-advbtn" onclick="toggleAdv()" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:700;padding:4px 0;width:auto;margin-bottom:8px">More options ▾</button>
         <div id="qz-adv" class="hidden">
           <div class="field" id="qz-st-field" style="display:none"><label>Sub-topic</label><div id="qz-st-host"></div></div>
           <div class="field"><label>Grade</label>${qzTap("qz-grade", [{v:"",label:"All"},{v:"P6",label:"P6"},{v:"M2",label:"M2"},{v:"Other",label:"Other"}], gradeCur, "seg")}</div>
-          <div class="field"><label>How many questions?</label>${qzTap("qz-count", [10,20,30,40,50].map(n=>({v:n,label:n})), 10, "seg")}</div>
+          <div class="field"><label>Questions in this mission</label>${qzTap("qz-count", [10,20,30,40,50].map(n=>({v:n,label:n})), 10, "seg")}</div>
           <div class="field" id="qz-time-wrap"><label>Time per question</label>${qzTap("qz-time", [{v:60,label:"1m"},{v:120,label:"2m"},{v:180,label:"3m"},{v:240,label:"4m"},{v:300,label:"5m"}], 60, "seg")}</div>
         </div>
         <div id="qz-msg" class="msg hidden"></div>
-        <button class="btn primary" style="width:100%" onclick="startQuiz(false)">Start quiz</button>
+        <button class="btn primary" style="width:100%;margin-top:4px" onclick="startQuiz(false)">Start this mission →</button>
       </div>
-      <div class="sectiontitle">More practice</div>
+      <div class="sectiontitle">Keep going</div>
       <div class="grid2">
-        <button class="actionbtn vocab" onclick="go('vocab')"><span class="ic">📚</span>Vocab flashcards</button>
-        <button class="actionbtn" onclick="startQuiz(true)"><span class="ic">🔁</span>My mistakes</button>
+        <button class="actionbtn vocab" onclick="go('vocab')"><span class="ic">📚</span>Vocab flashcards<span style="font-size:11px;color:var(--muted);font-weight:500">Build English confidence</span></button>
+        <button class="actionbtn" onclick="startQuiz(true)"><span class="ic">↻</span>My mistakes<span style="font-size:11px;color:var(--muted);font-weight:500">Turn tricky ones into wins</span></button>
       </div>`;
     let mode="practice";
     v.querySelectorAll("#qz-mode button").forEach(b=>b.onclick=()=>{ mode=b.dataset.v; v.querySelectorAll("#qz-mode button").forEach(x=>x.classList.toggle("on",x===b)); $("qz-time-wrap").style.display=(mode==='study'||mode==='flashcard')?'none':'block'; });
@@ -1706,7 +1880,8 @@
       if(q.type!=="written" && !isLocked(chs)) chs=shuffle(chs); return {q, choices:chs}; });
     const timed=(mode==="practice"||mode==="exam");
     quiz={ items, idx:0, mode, timed, perQ, timeLeft: timed?items.length*perQ:0, answers:{}, flags:new Set(), startedAt:Date.now(), paused:false };
-    $("nav").style.display="none"; $("title").textContent=cap(mode)+" quiz";
+    document.body.classList.add("quiz-running");
+    $("nav").style.display="none"; $("title").textContent=cap(mode)+" mission";
     if(timed){ clearInterval(timerInt); timerInt=setInterval(()=>{ if(quiz&&!quiz.paused){ quiz.timeLeft--; updateTimer(); if(quiz.timeLeft<=0){ clearInterval(timerInt); submitQuiz(true); } } },1000); }
     renderQ();
   }
@@ -1737,21 +1912,23 @@
       if(reveal && q.explanation) body+=`<div class="tile" style="margin-top:10px;background:rgba(124,77,255,.06)"><div style="font-size:12px;color:var(--muted)">Explanation</div>${esc(q.explanation)}</div>`;
     }
     v.innerHTML = `
-      <div class="qhead">
-        <button class="btn sm" onclick="exitQuiz()">✕</button>
-        <div class="prog">${quiz.idx+1} / ${quiz.items.length}</div>
-        ${quiz.timed?`<div class="timer" id="qz-timer"></div>`:`<div></div>`}
-        <button class="btn sm" onclick="togglePause()">${quiz.paused?"▶ Resume":"❚❚"}</button>
-      </div>
-      <div style="height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin:2px 0 10px"><div style="height:100%;width:${Math.round((quiz.idx+1)/quiz.items.length*100)}%;background:var(--accent);transition:width .25s"></div></div>
-      <div class="gridnav">${quiz.items.map((x,i)=>{ const aa=quiz.answers[x.q.id]; let c="gn"; if(i===quiz.idx)c+=" cur"; if(aa&&((aa.chosen&&aa.chosen.length)||aa.written||aa.submitted))c+=" done"; if(quiz.flags.has(i))c+=" flag"; return `<button class="${c}" onclick="jump(${i})">${i+1}</button>`; }).join("")}</div>
-      <div class="tile">${quiz.paused?'<div class="empty">Paused — tap Resume up top.</div>':body}</div>
-      <div class="row" style="margin-top:4px">
-        <button class="btn" onclick="prevQ()" ${quiz.idx===0?"disabled":""}>← Prev</button>
-        <button class="btn" style="flex:none" onclick="toggleFlag()">${quiz.flags.has(quiz.idx)?"★":"☆"}</button>
-        ${quiz.idx<quiz.items.length-1?`<button class="btn primary" onclick="nextQ()">Next →</button>`:`<button class="btn primary" onclick="submitQuiz(false)">Finish</button>`}
-      </div>
-      <button class="fab" onclick="openNotes()">✎</button>`;
+      <div class="quiz-frame">
+        <div class="quiz-topline">
+          <button class="btn sm" onclick="exitQuiz()" aria-label="Exit quiz">✕</button>
+          <div class="quiz-counter">Mission · ${quiz.idx+1} of ${quiz.items.length}</div>
+          ${quiz.timed?`<div class="quiz-timer" id="qz-timer"></div>`:`<div class="quiz-timer"></div>`}
+          <button class="btn sm" onclick="togglePause()" aria-label="Pause quiz">${quiz.paused?"▶":"❚❚"}</button>
+        </div>
+        <div class="quiz-progress"><div style="height:100%;width:${Math.round((quiz.idx+1)/quiz.items.length*100)}%;transition:width .25s"></div></div>
+        <div class="gridnav">${quiz.items.map((x,i)=>{ const aa=quiz.answers[x.q.id]; let c="gn"; if(i===quiz.idx)c+=" cur"; if(aa&&((aa.chosen&&aa.chosen.length)||aa.written||aa.submitted))c+=" done"; if(quiz.flags.has(i))c+=" flag"; return `<button class="${c}" onclick="jump(${i})" aria-label="Question ${i+1}">${i+1}</button>`; }).join("")}</div>
+        <div class="tile quiz-stage">${quiz.paused?'<div class="empty">Paused — tap the play button above when you’re ready.</div>':body}</div>
+        <div class="row quiz-bottom" style="margin-top:12px">
+          <button class="btn" onclick="prevQ()" ${quiz.idx===0?"disabled":""}>← Prev</button>
+          <button class="btn" style="flex:none" onclick="toggleFlag()">${quiz.flags.has(quiz.idx)?"★ Flagged":"☆ Flag"}</button>
+          ${quiz.idx<quiz.items.length-1?`<button class="btn primary" onclick="nextQ()">Next →</button>`:`<button class="btn primary" onclick="submitQuiz(false)">Finish mission</button>`}
+        </div>
+        <button class="fab" onclick="openNotes()" aria-label="Open notepad">✎</button>
+      </div>`;
     updateTimer();
     if(q.type==="written" && !quiz.paused){ const wr=$("wr"); if(wr) wr.oninput=()=>{ quiz.answers[q.id]={...(quiz.answers[q.id]||{}), written:wr.value}; }; }
   }
@@ -1773,12 +1950,12 @@
   function jump(i){ quiz.idx=i; renderQ(); }
   function toggleFlag(){ if(quiz.flags.has(quiz.idx))quiz.flags.delete(quiz.idx); else quiz.flags.add(quiz.idx); renderQ(); }
   function togglePause(){ quiz.paused=!quiz.paused; renderQ(); }
-  function exitQuiz(){ if(confirm("Leave this quiz? Progress won't be saved.")){ clearInterval(timerInt); quiz=null; $("nav").style.display="flex"; go("quiz"); } }
+  function exitQuiz(){ if(confirm("Leave this mission? Progress won't be saved.")){ clearInterval(timerInt); quiz=null; document.body.classList.remove("quiz-running"); $("nav").style.display="flex"; go("quiz"); } }
 
   async function submitQuiz(auto){
     clearInterval(timerInt);
     const scored=(quiz.mode==="practice"||quiz.mode==="exam");
-    if(!scored){ quiz=null; $("nav").style.display="flex"; go("quiz"); return; }
+    if(!scored){ quiz=null; document.body.classList.remove("quiz-running"); $("nav").style.display="flex"; go("quiz"); return; }
     let correct=0; const rows=[]; const duration=Math.round((Date.now()-quiz.startedAt)/1000);
     quiz.items.forEach(it=>{ const q=it.q, a=quiz.answers[q.id]||{}; const ok=isCorrect(q,it.choices,a); if(ok)correct++;
       rows.push({ question_id:q.id, subject_id:q.subject_id, subtopic_id:q.subtopic_id, chosen:a.chosen||null, written_text:a.written||null, is_correct:ok, self_graded:!!a.self_graded, time_sec:0 }); });
@@ -1786,7 +1963,7 @@
       if(!error && att) await client.from("answers").insert(rows.map(r=>({...r, attempt_id:att.id, user_id:me.id}))); }catch(e){}
     const result={ total:quiz.items.length, correct, items:quiz.items.map(it=>({q:it.q, choices:it.choices, a:quiz.answers[it.q.id]||{}})) };
     try{ tgSendReport(quiz.mode, result); }catch(e){}
-    quiz=null; $("nav").style.display="flex"; showResults(result);
+    quiz=null; document.body.classList.remove("quiz-running"); $("nav").style.display="flex"; showResults(result);
   }
   function perfColor(p){ return p>=75?'#1fbf75':p>=50?'#e08a1e':'#d8456b'; }
   function barRow(name,c,t){ const p=t?Math.round(c/t*100):0; return `<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${esc(name)}</span><span style="color:var(--muted)">${c}/${t} · ${p}%</span></div><div class="bar"><div style="height:100%;width:${p}%;background:${perfColor(p)}"></div></div></div>`; }
@@ -1795,13 +1972,13 @@
     r.items.forEach(it=>{ const s=subjectById(it.q.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(isCorrect(it.q,it.choices,it.a))bySub[n].c++; });
     state.route="quiz"; $("title").textContent="Results"; [...$("nav").children].forEach(b=>b.classList.toggle("on",b.dataset.k==="quiz"));
     $("view").innerHTML=`
-      <div class="tile" style="text-align:center"><div style="font-family:var(--fd);font-size:46px;font-weight:700;color:${perfColor(pct)}">${pct}%</div><div style="color:var(--muted)">${r.correct} of ${r.total} correct</div></div>
-      <div class="sectiontitle">By subject</div>
+      <div class="result-hero"><div><div class="eyebrow" style="color:#8de3d3">MISSION COMPLETE</div><h3>${pct>=75?"That was a strong run.":pct>=50?"Good effort — you’re building it.":"Every attempt counts as practice."}</h3><p>${r.correct} of ${r.total} correct · your results are saved</p></div><div class="result-score" style="color:${perfColor(pct)}">${pct}%</div></div>
+      <div class="result-actions"><button class="btn" onclick="go('dashboard')">← Home</button><button class="btn primary" onclick="go('quiz')">New mission →</button></div>
+      <div class="sectiontitle">Your progress</div>
       <div class="tile">${Object.entries(bySub).map(([n,d])=>barRow(n,d.c,d.t)).join("")}</div>
-      <div class="sectiontitle">Review</div>
+      <div class="sectiontitle">Review the clues</div>
       ${r.items.map((it,i)=>{ const ok=isCorrect(it.q,it.choices,it.a); const correctTxt=it.q.type==="written"?esc(it.q.answer_text||"—"):it.choices.filter(c=>c.is_correct).map(c=>c.label+". "+esc(c.content)).join(", ");
-        return `<div class="tile"><div style="display:flex;gap:8px"><span style="color:${ok?'var(--ok)':'var(--danger)'};font-weight:700">${ok?'✓':'✗'}</span><div style="flex:1"><div style="font-weight:600;font-size:14px">${i+1}. ${esc(it.q.stem)}</div><div style="font-size:12.5px;color:var(--muted);margin-top:4px">Correct: ${correctTxt}</div>${it.q.explanation?`<div style="font-size:12.5px;margin-top:4px">${esc(it.q.explanation)}</div>`:""}</div></div></div>`; }).join("")}
-      <div class="row" style="margin-top:12px"><button class="btn" onclick="go('dashboard')">Dashboard</button><button class="btn primary" onclick="go('quiz')">New quiz</button></div>`;
+        return `<div class="tile"><div style="display:flex;gap:12px"><span style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:${ok?'color-mix(in srgb,var(--ok) 14%,var(--card))':'color-mix(in srgb,var(--danger) 14%,var(--card))'};color:${ok?'var(--ok)':'var(--danger)'};font-weight:700;flex:none">${ok?'✓':'✗'}</span><div style="flex:1"><div style="font-weight:700;font-size:14px">${i+1}. ${esc(it.q.stem||"Image question")}</div><div style="font-size:12.5px;color:var(--muted);margin-top:5px">Correct: ${correctTxt}</div>${it.q.explanation?`<div style="font-size:12.5px;margin-top:7px">${esc(it.q.explanation)}</div>`:""}</div></div></div>`; }).join("")}`;
   }
 
   /* ---------- STATS ---------- */
@@ -1817,10 +1994,11 @@
       : "";
     const wireStOwner=()=>{ const so=$("st-owner"); if(so) so.onchange=(e)=>{ state.bankOwner=e.target.value; viewStats(v); }; };
     const sf = state.statsSubject ? subjectById(state.statsSubject) : null;
+    const statsHead=`<div class="bank-head"><div><div class="eyebrow">PROGRESS AT A GLANCE</div><div class="bank-title">See the work adding up.</div><div class="bank-sub">Use the pattern, not just the score, to decide what to practise next.</div></div><div class="quiz-mark" style="background:var(--accent2);color:#fff;width:58px;height:58px;border-radius:19px;display:grid;place-items:center;font:700 23px var(--fd)">↗</div></div>`;
     let useAns = answers||[];
     if(sf) useAns = useAns.filter(a=>a.subject_id===state.statsSubject);
     const filterChip = sf ? `<div class="tile" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:11px 14px"><div style="font-size:13.5px"><b>${esc(sf.name)}</b> only</div><button class="btn sm ghost" style="width:auto;flex:none" onclick="clearStatsSubject()">Show all ▸</button></div>` : "";
-    if(!useAns.length){ v.innerHTML=ownerSel+filterChip+`<div class="empty">No quiz data ${sf?("for "+esc(sf.name)):"yet"}.<br>Take a quiz to see stats!</div>`; wireStOwner(); return; }
+    if(!useAns.length){ v.innerHTML=statsHead+ownerSel+filterChip+`<div class="empty">No quiz data ${sf?("for "+esc(sf.name)):"yet"}.<br>Take a quiz to see stats!</div>`; wireStOwner(); return; }
     const total=useAns.length, correct=useAns.filter(a=>a.is_correct).length; const bySub={};
     useAns.forEach(a=>{ const s=subjectById(a.subject_id); const n=s?s.name:"—"; bySub[n]=bySub[n]||{c:0,t:0}; bySub[n].t++; if(a.is_correct)bySub[n].c++; });
     const entries=Object.entries(bySub).map(([n,d])=>[n,d.c,d.t,d.t?Math.round(d.c/d.t*100):0]).sort((a,b)=>a[3]-b[3]);
@@ -1829,7 +2007,7 @@
     const last=Object.entries(days).sort().slice(-14);
     const quizzes=(attempts||[]).length, activeDays=Object.keys(days).length;
     const maxN=Math.max(1,...last.map(([,n])=>n));
-    v.innerHTML=ownerSel+filterChip+`
+    v.innerHTML=statsHead+ownerSel+filterChip+`
       <div class="grid2">
         <div class="stat"><div class="n">${Math.round(correct/total*100)}%</div><div class="l">${sf?"Accuracy":"Overall accuracy"}</div></div>
         <div class="stat"><div class="n">${total}</div><div class="l">Questions answered</div></div>
@@ -1900,7 +2078,8 @@
     const LVORD=["A1","A2","B1","B2","C1","C2"]; const lvCnt={}; words.forEach(w=>{const k=w.lv||"?"; lvCnt[k]=(lvCnt[k]||0)+1;});
     const lvPresent=[...LVORD.filter(l=>lvCnt[l]),...(lvCnt["?"]?["?"]:[])]; vocabLevelSel=new Set(lvPresent); const unleveled=lvCnt["?"]||0;
     v.innerHTML=`
-      <button class="btn sm ghost" onclick="go('quiz')">← Back</button>
+      <div class="bank-head"><div><div class="eyebrow">ENGLISH LAB</div><div class="bank-title">Grow a word by word.</div><div class="bank-sub">Build your personal vocabulary, then warm up before testing yourself.</div></div><div class="quiz-mark" style="background:var(--accent);color:#fff;width:58px;height:58px;border-radius:19px;display:grid;place-items:center;font:700 23px var(--fd)">Aa</div></div>
+      <button class="btn sm ghost" onclick="go('quiz')">← Back to missions</button>
       <div class="sectiontitle">Add words</div>
       <div class="tile">
         <div class="field"><label>Type words — one per line</label><textarea id="vc-text" style="min-height:104px;font-size:14px" placeholder="apple = แอปเปิล&#10;run = วิ่ง&#10;serendipity"></textarea></div>
