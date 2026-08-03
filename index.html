@@ -1151,10 +1151,50 @@
   // ("1." "2." "3."). A number-dot is a NARROW left-margin glyph followed by an
   // ISOLATED dot, sitting on its own text line — a question boundary is exactly
   // the top of such a line, and the previous question ends there too.
-  function smartQuestionDots(canvas){
+  // Teacher-marked pages (red ✗/✓ and blue divider strokes) use the PRINTED
+  // pass: black-ink-only scan, red bridges the digit extent, the period is a
+  // short run at the BASELINE inside the glyph extent, hollow rings (○) and
+  // Thai letters (tall strokes) fail — every qualifying label is a question
+  // start. Clean pages (handwritten notes, no marks) use the original full-ink
+  // pass, regression-safe.
+  function hasTeacherMarks(canvas){
     const W=canvas.width,H=canvas.height;
     const data=canvas.getContext("2d").getImageData(0,0,W,H).data;
-    const isDark=(x,y)=>{ const i=(y*W+x)*4; return (.3*data[i]+.59*data[i+1]+.11*data[i+2])<155; };
+    let marks=0;
+    for(let y=0;y<H;y+=4){ for(let x=0;x<W;x+=4){
+      const i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+      if(r>Math.max(g,b)+40&&r>80)marks++;
+      else if(b>Math.max(r,g)+30&&b>80)marks++;
+    } }
+    return marks>=10;
+  }
+  function smartQuestionDots(canvas){
+    const marked=hasTeacherMarks(canvas);
+    const pPrinted=()=>smartQuestionDotsPass(canvas,{printed:true,ignoreMarks:true,digitLike:false,mergeGap:Math.max(2,Math.round(canvas.height*.002))});
+    const pHand=()=>smartQuestionDotsPass(canvas,{ignoreMarks:false,digitLike:false,mergeGap:Math.max(6,Math.round(canvas.height*.008))});
+    if(marked){
+      const r2=pPrinted(); if(r2.length>=2)return r2;
+      const r1=pHand();    if(r1.length>=2)return r1;
+      return r2.length?r2:r1;
+    }
+    const r1=pHand();    if(r1.length>=2)return r1;
+    const r2=pPrinted(); if(r2.length>=2)return r2;
+    return r1.length?r1:[];
+  }
+  function smartQuestionDotsPass(canvas,opt){
+    const W=canvas.width,H=canvas.height;
+    const data=canvas.getContext("2d").getImageData(0,0,W,H).data;
+    const isDark=(x,y)=>{ const i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2]; if(.3*r+.59*g+.11*b>=155)return false;
+      if(opt.ignoreMarks){ if(r>Math.max(g,b)+40&&r>80)return false; if(b>Math.max(r,g)+30&&b>80)return false; }
+      return true; };
+    // Printed pass helpers: black-only ink (teacher red excluded) and black+red
+    // ink (red BRIDGES a digit fragmented by an overlapping ✓/✗).
+    const isBlack=(x,y)=>{ if(!isDark(x,y))return false; const i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+      if(r>Math.max(g,b)+40&&r>80)return false; return true; };
+    const isInk=(x,y)=>{ const i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2]; if(.3*r+.59*g+.11*b>=155)return false;
+      if(b>Math.max(r,g)+30&&b>80)return false; return true; };
+    const colBlack=(x,y0,y1)=>{ for(let y=y0;y<=y1;y+=2){ if(isBlack(x,y))return true; } return false; };
+    const colInk=(x,y0,y1)=>{ for(let y=y0;y<=y1;y+=2){ if(isInk(x,y))return true; } return false; };
     const colDark=(x,y0,y1)=>{ for(let y=y0;y<=y1;y+=2){ if(isDark(x,y))return true; } return false; };
     // Full-resolution text-line bands (thin handwritten strokes survive at
     // full res — smartInkLines downsamples to 240px and loses them).
@@ -1165,39 +1205,82 @@
     if(!bands.length)return [];
     // Merge bands split by a tiny gap (a handwritten glyph often breaks into
     // two bands); small fixed threshold — never bridge real question gaps.
-    const mergeGap=Math.max(6,Math.round(H*.008));
+    const mergeGap=opt.mergeGap;
     const merged=[]; bands.forEach(b=>{ const lastb=merged[merged.length-1]; if(lastb&&b[0]-lastb[1]<=mergeGap)lastb[1]=b[1]; else merged.push([b[0],b[1]]); });
     const labels=[];
     for(const ln of merged){
       const y0=ln[0],y1=ln[1];
       // leftmost dark pixel within the left margin
       let x0=-1;
-      for(let x=0;x<W*.22;x++){ if(colDark(x,y0,y1)){ x0=x; break; } }
+      const winLimit=opt.printed?W*.14:W*.22;
+      for(let x=0;x<winLimit;x++){ if(opt.printed?colBlack(x,y0,y1):colDark(x,y0,y1)){ x0=x; break; } }
       if(x0<0)continue;
       // glyph right edge: stop at 2 consecutive blank columns
       let x1=x0,blank=0;
+      const inkAt=opt.printed?colInk:colDark;
       for(let x=x0+1;x<Math.min(W,x0+Math.max(12,W*.2));x++){
-        if(colDark(x,y0,y1)){ blank=0; x1=x; }
+        if(inkAt(x,y0,y1)){ blank=0; x1=x; }
         else if(++blank>=2)break;
       }
       const gw=x1-x0+1;
-      if(gw<3||gw>W*.18)continue;               // sliver or divider/text line
-      // isolated dot: a SHORT vertical ink run to the right of the glyph,
-      // much shorter than the glyph height (a dot is 2-5px; strokes run tall).
-      const hg=y1-y0+1, dotMax=Math.max(5,Math.round(hg*.5));
-      let dot=false;
-      for(let x=x1+2;x<Math.min(W,x1+W*.08);x++){
-        if(!colDark(x,y0,y1))continue;
-        let run=0,run0=0;
-        for(let y=y0;y<=y1;y++){ if(isDark(x,y)){ if(!run)run0=y; run++; } }
-        if(run>=2&&run<=dotMax){ dot=true; break; }
+      if(opt.printed){
+        // ===== PRINTED EXAMS: black-ink-only, red-bridged extent =====
+        if(gw<3||gw>28)continue;            // printed digits are 15-22px
+        // component height over black+red ink (the band may merge a table row
+        // or an adjacent text line — the component is the true glyph box)
+        let minY=y1,maxY=y0;
+        for(let x=x0;x<=x1;x++){ for(let y=y0;y<=y1;y++){ if(isInk(x,y)){ if(y<minY)minY=y; if(y>maxY)maxY=y; } } }
+        const ch=maxY-minY+1;
+        if(ch<6||ch>40)continue;            // table borders are 100px+ tall
+        // dot = short black run at the BASELINE (bottom 40% of the glyph box)
+        // INSIDE the extent, at the period's position. Thai letters have tall
+        // baseline strokes (10px+) and their tone marks sit at the TOP — both
+        // fail; only the period (2-5px, bottom-anchored) passes.
+        const dotMax=Math.max(5,Math.round(ch*.35));
+        const baseY=minY+ch*.6;
+        let dot=false;
+        for(let x=x0+2;x<=x1;x++){
+          let run=0,run0=0;
+          for(let y=y0;y<=y1;y++){ if(isBlack(x,y)){ if(!run)run0=y; run++; } }
+          if(run>=2&&run<=dotMax&&run0>=baseY){ dot=true; break; }
+        }
+        if(!dot)continue;
+        // hollow rings (the "○ 1" lesson circle) are rejected by a LARGE
+        // enclosed black hole; red-bridged loops are excluded (black only) and
+        // small digit loops (6/8/9) pass the 30% box-area threshold.
+        if(hasEnclosedHole(x0,minY,x1,maxY,isBlack))continue;
+        labels.push({y0,y1,x0,x1,gw,ch});
+      } else {
+        const gwMin=opt.digitLike?2:3;
+        const gwMax=opt.digitLike?Math.max(8,Math.round(H*.007)):W*.18;
+        if(gw<gwMin||gw>gwMax)continue;            // sliver/abbreviation, or divider/text line
+        // isolated dot: a SHORT vertical ink run to the right of the glyph,
+        // much shorter than the glyph height (a dot is 2-5px; strokes run tall).
+        // Printed digits: the period sits IMMEDIATELY right of the digit —
+        // keep the window tight so table cells and header abbreviations fail.
+        const hg=y1-y0+1, dotMax=Math.max(opt.digitLike?4:5,Math.round(hg*.5));
+        const dotWin=opt.digitLike?Math.max(6,(x1-x0+1)*2):W*.08;
+        let dot=false;
+        for(let x=x1+2;x<Math.min(W,x1+dotWin);x++){
+          if(!colDark(x,y0,y1))continue;
+          let run=0,run0=0;
+          for(let y=y0;y<=y1;y++){ if(isDark(x,y)){ if(!run)run0=y; run++; } }
+          if(run>=2&&run<=dotMax){ dot=true; break; }
+        }
+        // A question number-dot ALWAYS has a dot; solid blobs (circle arcs,
+        // divider ends) and plain left-margin text must not count as labels.
+        if(!dot)continue;
+        labels.push({y0,y1,x0,x1,gw,dot});
       }
-      // A question number-dot ALWAYS has a dot; solid blobs (circle arcs,
-      // divider ends) and plain left-margin text must not count as labels.
-      if(!dot)continue;
-      labels.push({y0,y1,x0,x1,gw,dot});
     }
     if(!labels.length)return [];
+    if(opt.printed){
+      // Every qualifying label IS a question start — the position gate, the
+      // baseline-period test and the hole test already rejected table row
+      // numbers, options (indented x>=125) and header text.
+      const starts=labels.map(lb=>Math.max(0,lb.y0-6));
+      return starts.filter((y,i)=>i===0||y-starts[i-1]>H*.02).slice(0,120);
+    }
     // A label starts a new question when there is no other label close above it
     // (same option row-set belongs to one question).
     const gaps=[]; for(let i=1;i<labels.length;i++)gaps.push(labels[i].y0-labels[i-1].y1);
@@ -1206,6 +1289,25 @@
     const starts=[];
     labels.forEach((lb,i)=>{ const prevGap=i? lb.y0-labels[i-1].y1 : Infinity; if(i===0||prevGap>maxGap)starts.push(Math.max(0,lb.y0-6)); });
     return starts.filter((y,i)=>i===0||y-starts[i-1]>H*.02).slice(0,120);
+  }
+  // Large-enclosed-hole test for the printed pass: flood-fill white from the
+  // glyph-box border; any unreachable white region >=30% of the box area means
+  // a hollow ring (○) — not a question number.
+  function hasEnclosedHole(bx0,by0,bx1,by1,ink){
+    const w=bx1-bx0+1,h=by1-by0+1;
+    const inkCell=(i,j)=>ink(bx0+i,by0+j);
+    const visited=new Uint8Array(w*h);
+    const q=[];
+    for(let i=0;i<w;i++){ for(const j of [0,h-1]){ if(!inkCell(i,j)&&!visited[j*w+i]){ visited[j*w+i]=1; q.push(j*w+i); } } }
+    for(let j=0;j<h;j++){ for(const i of [0,w-1]){ if(!inkCell(i,j)&&!visited[j*w+i]){ visited[j*w+i]=1; q.push(j*w+i); } } }
+    let qp=0;
+    while(qp<q.length){ const c=q[qp++],cx=c%w,cy=(c/w)|0;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nx=cx+dx,ny=cy+dy;
+        if(nx<0||ny<0||nx>=w||ny>=h)continue; const nc=ny*w+nx;
+        if(!visited[nc]&&!inkCell(nx,ny)){ visited[nc]=1; q.push(nc); } } }
+    let holeArea=0;
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++){ const c=j*w+i; if(!visited[c]&&!inkCell(i,j))holeArea++; }
+    return holeArea/Math.max(1,w*h)>0.3;
   }
   function wordText(w){ return String(w&&w.text||"").trim().replace(/[\u00a0]/g,""); }
   function wordBox(w){ const b=w&&w.bbox||{}; return {x:+b.x0||0,y:+b.y0||0,w:(+b.x1||0)-(+b.x0||0),h:(+b.y1||0)-(+b.y0||0)}; }
