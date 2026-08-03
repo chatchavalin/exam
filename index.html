@@ -1320,32 +1320,79 @@
   function cloneCanvas(src){ const c=document.createElement("canvas"); c.width=src.width; c.height=src.height; c.getContext("2d").drawImage(src,0,0); return c; }
   function labelSet(mode){ const set=mode||iiLabelSet; return set==="numeric"?["1","2","3","4","5","6"]:set==="latin"?["A","B","C","D","E","F"]:["ก","ข","ค","ง","จ","ฉ"]; }
   function labelAnchors(c){
-    const W=c.width,H=c.height, out=[], data=c.getContext("2d").getImageData(0,0,W,H).data;
-    const cols=[Math.round(W*.18),Math.round(W*.56)];
-    const isDark=(x,y)=>{ const i=(y*W+x)*4; return (0.3*data[i]+0.59*data[i+1]+0.11*data[i+2])<155; };
-    cols.forEach((cx,ci)=>{
-      const x0=Math.max(0,cx-Math.round(W*.015)), x1=Math.min(W,cx+Math.round(W*.015));
-      const rows=[]; let start=null,last=null;
-      for(let y=0;y<H;y+=2){ let dark=0,total=0; for(let x=x0;x<x1;x+=2){ total++; if(isDark(x,y)) dark++; }
-        const ink=total&&dark/total>.035;
-        if(ink){ if(start===null)start=y; last=y; } else if(start!==null){ if(last-start>=2) rows.push([start,last]); start=null; }
-      }
-      if(start!==null&&last-start>=2) rows.push([start,last]);
-      rows.forEach(r=>out.push({x:cx,y:Math.round((r[0]+r[1])/2),h:Math.max(12,r[1]-r[0]+8),col:ci}));
+    const W=c.width,H=c.height, out=[];
+    const data=c.getContext("2d").getImageData(0,0,W,H).data;
+    const isDark=(x,y)=>{ const i=(y*W+x)*4; return (.3*data[i]+.59*data[i+1]+.11*data[i+2])<155; };
+    // Find text-line bands across the full width (not a fixed column).
+    const bands=[]; let st=null,last=null;
+    for(let y=0;y<H;y+=2){ let dark=0; for(let x=0;x<W;x+=3){ if(isDark(x,y))dark++; }
+      if(dark*3/W>.008){ if(st===null)st=y; last=y; } else if(st!==null){ if(last-st>=3)bands.push([st,last]); st=null; }
+    }
+    if(st!==null&&last-st>=3)bands.push([st,last]);
+    // Search zones: left-margin labels + a possible right-hand choice column.
+    const zones=[[0,Math.round(W*.32)],[Math.round(W*.45),Math.round(W*.72)]];
+    bands.forEach(([by0,by1])=>{
+      const bh=by1-by0; if(bh<6)return;
+      zones.forEach(([zx0,zx1],ci)=>{
+        // leftmost dark pixel of this band inside the zone = label start
+        let gx0=-1;
+        for(let x=zx0;x<=zx1;x++){ for(let y=by0;y<=by1;y++){ if(isDark(x,y)){ gx0=x; break; } } if(gx0>=0)break; }
+        if(gx0<0)return;
+        // glyph right edge: stop at the first real gap (2 blank cols) so the
+        // following option text is never absorbed; hard cap at gwMax.
+        const maxW=Math.min(W-1,gx0+Math.max(10,Math.round(bh*2.2)));
+        const gwMax=ci===0?Math.max(16,Math.round(W*.07)):Math.max(12,Math.round(W*.04));
+        let gx1=gx0, blank=0, capped=false;
+        for(let x=gx0+1;x<=maxW;x++){
+          let has=false; for(let y=by0;y<=by1;y++){ if(isDark(x,y)){ has=true; break; } }
+          if(has){ gx1=x; blank=0; }
+          else { blank++; if(blank>=2) break; }
+          if(x-gx0+1>gwMax){ capped=true; break; }
+        }
+        const gw=gx1-gx0+1;
+        if(gw<2||gw>gwMax||capped&&gw<Math.max(6,Math.round(bh*.5)))return;
+        // glyph vertical extent
+        let gy0=by1,gy1=by0;
+        for(let y=by0;y<=by1;y++){ for(let x=gx0;x<=gx1;x++){ if(isDark(x,y)){ if(y<gy0)gy0=y; if(y>gy1)gy1=y; break; } } }
+        const gh=Math.max(4,gy1-gy0+1);
+        if(gh<6||gh>bh+Math.max(4,Math.round(bh*.6)))return;
+        out.push({x:Math.round((gx0+gx1)/2),x0:gx0,x1:gx1,y:Math.round((gy0+gy1)/2),y0:gy0,y1:gy1,h:gh,col:ci});
+      });
     });
     return out.sort((a,b)=>a.y-b.y||a.x-b.x);
+  }
+  function pickLabelAnchors(anchors, count){
+    if(!anchors||!anchors.length)return [];
+    // Group by x-position (labels of one choice column align vertically).
+    const groups=[];
+    anchors.slice().sort((a,b)=>a.x-b.x).forEach(a=>{
+      let g=groups.find(g=>Math.abs(g.x-a.x)<=12);
+      if(!g){ g={x:a.x,items:[]}; groups.push(g); }
+      g.items.push(a);
+    });
+    // Prefer the largest aligned group; tie -> bottom-most (options end a question).
+    groups.forEach(g=>{ g.meanY=g.items.reduce((s,a)=>s+a.y,0)/g.items.length; });
+    groups.sort((a,b)=> b.items.length-a.items.length || b.meanY-a.meanY);
+    let items=groups[0]?groups[0].items:[];
+    items=items.slice().sort((a,b)=>a.y-b.y);
+    return count&&items.length>count?items.slice(-count):items;
   }
   function applyLabelCleanup(c, redraw, choiceCount, labelMode){
     const ctx=c.getContext("2d"), W=c.width, labels=labelSet(labelMode);
     const anchors=labelAnchors(c); const byCol=[[],[]]; anchors.forEach(a=>byCol[a.col].push(a));
     byCol.forEach((arr,ci)=>{
-      const picked=choiceCount&&arr.length>choiceCount ? arr.slice(-choiceCount) : arr;
+      const picked=pickLabelAnchors(arr,choiceCount);
       picked.forEach((a,i)=>{
-      const extra=iiRemoveHandwriting?Math.round(iiLabelPad*.45):0;
-      const half=Math.round(W*.014)+iiLabelPad+extra;
-      const top=Math.max(0,a.y-a.h*.78), bottom=Math.min(c.height,a.y+a.h*.78);
-      ctx.fillStyle="#fff"; ctx.fillRect(Math.max(0,a.x-half),top,Math.min(W,a.x+half)-(Math.max(0,a.x-half)),bottom-top);
-      if(redraw){ ctx.fillStyle="#1a1730"; ctx.font=`${Math.max(12,Math.round(a.h*.9))}px Arial,sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText((labels[i%labels.length])+".",a.x,a.y); }
+        const extra=iiRemoveHandwriting?Math.round(iiLabelPad*.45):0;
+        const padX=Math.max(4,Math.round(a.h*.35))+extra;
+        const padY=Math.max(3,Math.round(a.h*.3));
+        const x0=Math.max(0,a.x0-padX), x1=Math.min(W,a.x1+padX);
+        const y0=Math.max(0,a.y0-padY), y1=Math.min(c.height,a.y1+padY);
+        ctx.fillStyle="#fff"; ctx.fillRect(x0,y0,x1-x0,y1-y0);
+        if(redraw){ const fs=Math.max(12,Math.round(a.h*.95));
+          ctx.fillStyle="#1a1730"; ctx.font=`${fs}px Arial,sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle";
+          ctx.fillText((labels[i%labels.length])+".",(a.x0+a.x1)/2,(a.y0+a.y1)/2);
+        }
       });
     });
     return anchors;
@@ -1368,7 +1415,7 @@
   }
   function detectMarkedAnswer(c,count,labelMode){
     const anchors=labelAnchors(c); const left=anchors.filter(a=>a.col===0); if(left.length<count) return {idx:null,confidence:0};
-    const rows=left.slice(-count), scores=rows.map(a=>labelScore(c,a)); const sorted=scores.slice().sort((a,b)=>b-a); const best=scores.indexOf(sorted[0]); const base=sorted[1]||1; const confidence=Math.max(0,Math.min(0.99,(sorted[0]-base)/Math.max(1,sorted[0])));
+    const rows=pickLabelAnchors(left,count), scores=rows.map(a=>labelScore(c,a)); const sorted=scores.slice().sort((a,b)=>b-a); const best=scores.indexOf(sorted[0]); const base=sorted[1]||1; const confidence=Math.max(0,Math.min(0.99,(sorted[0]-base)/Math.max(1,sorted[0])));
     return {idx:confidence>=.12?best:null,confidence, scores};
   }
   function setImageCleanup(kind,value){
