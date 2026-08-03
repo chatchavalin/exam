@@ -1041,7 +1041,7 @@
   }
 
   /* ---------- IMAGE IMPORT (auto-crop) ---------- */
-  let imgPages=[], imgCands=[], curPage=0, linesByPage={}, iiDragging=false, imgPdf=null, iiCleanInk=false, iiRemoveHandwriting=false, iiLabelPad=24, iiRedrawLabels=true, iiLabelSet="thai", iiEngine="smart", iiSmartWords=[];
+  let imgPages=[], imgCands=[], curPage=0, linesByPage={}, iiDragging=false, imgPdf=null, iiCleanInk=true, iiRemoveHandwriting=false, iiLabelPad=24, iiRedrawLabels=true, iiLabelSet="thai", iiEngine="smart", iiSmartWords=[];
   const EF_IMG_META="__EXAMFORGE_IMAGE_META__";
   function openImageImport(){
     imgPages=[]; imgCands=[];
@@ -1056,7 +1056,7 @@
         <div class="ii-help">These run locally in your browser. The original file is never overwritten.</div>
         <div class="ii-controls">
           <label class="ii-control"><input type="checkbox" id="ii-handwriting" onchange="setImageCleanup('handwriting',this.checked)"> Remove black handwriting &amp; marks <span class="chip">review recommended</span></label>
-          <label class="ii-control"><input type="checkbox" id="ii-colourink" onchange="setImageCleanup('colour',this.checked)"> Remove blue/red pen marks</label>
+          <label class="ii-control"><input type="checkbox" id="ii-colourink" checked onchange="setImageCleanup('colour',this.checked)"> Remove blue/red pen marks</label>
           <label class="ii-control"><input type="checkbox" id="ii-redraw" checked onchange="setImageCleanup('redraw',this.checked)"> Redraw clean ก. ข. ค. ง. labels</label>
           <div class="ii-range"><label for="ii-labelpad" style="margin:0">Label cleanup area</label><output id="ii-labelpad-out">24 px</output><input id="ii-labelpad" type="range" min="0" max="70" value="24" oninput="setImageCleanup('pad',this.value)"></div>
           <div class="row"><select id="ii-labelset" onchange="setImageCleanup('set',this.value)"><option value="thai">Thai labels · ก ข ค ง</option><option value="latin">Latin labels · A B C D</option><option value="numeric">Numbered choices · 1 2 3 4 5</option></select><button class="btn sm" onclick="exportCleanPdf()" style="flex:none">Export cleaned PDF</button></div>
@@ -1437,8 +1437,8 @@
       const J=await ensureJsPdf(), first=imgPages[0].original||imgPages[0].canvas, ratio=first.width/first.height, doc=new J({orientation:ratio>1?"landscape":"portrait",unit:"pt",format:"a4"});
       for(let i=0;i<imgPages.length;i++){
         const src=cloneCanvas(imgPages[i].original||imgPages[i].canvas), pageCands=imgCands.filter(cd=>cd.page===i);
+        if(iiCleanInk) cleanInk(src);
         if(pageCands.length){ const pctx=src.getContext("2d"); pageCands.forEach(cd=>pctx.drawImage(cleanedCandidateCanvas(cd),0,cd.y0)); }
-        else if(iiCleanInk) cleanInk(src);
         const url=src.toDataURL("image/jpeg",.9); const pw=doc.internal.pageSize.getWidth(), ph=doc.internal.pageSize.getHeight(), sc=Math.min(pw/src.width,ph/src.height), w=src.width*sc,h=src.height*sc; if(i)doc.addPage(); doc.addImage(url,"JPEG",(pw-w)/2,(ph-h)/2,w,h,"page"+i,"FAST");
       }
       doc.save("examforge-cleaned-"+new Date().toISOString().slice(0,10)+".pdf");
