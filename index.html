@@ -118,6 +118,30 @@
   .gn.flag{ box-shadow:0 0 0 2px var(--warn) inset; }
   .fab{ position:fixed; right:18px; bottom:24px; width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-size:21px; box-shadow:0 8px 20px -6px var(--accent); z-index:9; }
   .bar{ height:8px; background:var(--line); border-radius:6px; overflow:hidden; }
+  .ii-panel{ background:linear-gradient(135deg,rgba(124,77,255,.08),rgba(31,191,117,.06)); border:1px solid var(--line); border-radius:14px; padding:13px; margin:10px 0 14px; }
+  .ii-panel .ii-title{ font-family:var(--fd); font-weight:700; font-size:14px; }
+  .ii-panel .ii-help{ color:var(--muted); font-size:12px; line-height:1.45; margin-top:3px; }
+  .ii-controls{ display:grid; gap:10px; margin-top:11px; }
+  .ii-control{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink); }
+  .ii-control input[type=checkbox]{ width:18px; height:18px; flex:none; accent-color:var(--accent); }
+  .ii-range{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
+  .ii-range input[type=range]{ padding:0; border:none; background:none; accent-color:var(--accent); }
+  .ii-range output{ min-width:42px; text-align:right; font-size:12px; color:var(--accent); font-weight:700; }
+  .ii-step{ display:flex; gap:8px; align-items:flex-start; margin:8px 0; }
+  .ii-step .num{ width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:11px; font-weight:700; flex:none; }
+  .ii-step b{ font-size:13px; }
+  .ii-step span{ display:block; color:var(--muted); font-size:12px; margin-top:1px; }
+  .ii-candidate{ border:1px solid var(--line); border-radius:14px; padding:10px; margin-bottom:10px; background:var(--card); }
+  .ii-candidate img{ display:block; width:100%; max-height:330px; object-fit:contain; border-radius:9px; background:var(--bg); }
+  .ii-candidate .ii-meta{ display:flex; justify-content:space-between; gap:8px; align-items:center; color:var(--muted); font-size:11.5px; margin-top:7px; }
+  .ii-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .ii-actions .btn{ flex:1; min-width:120px; }
+  .ii-answer{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+  .ii-answer .btn.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .ii-brush{ touch-action:none; user-select:none; display:block; max-width:100%; margin:auto; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .ii-original-img{ display:block; width:100%; max-height:70vh; object-fit:contain; border-radius:10px; background:var(--bg); }
+  .ii-note{ color:var(--muted); font-size:11.5px; line-height:1.45; }
+  @media (max-width:430px){ .ii-actions .btn{ min-width:0; font-size:12px; padding:8px 9px; } }
 
   /* subject-first home */
   .hellobar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 4px; }
@@ -608,7 +632,7 @@
       <div id="written-block" class="${q.type==="written"?"":"hidden"}">
         <div class="field"><label>Model answer</label><textarea id="q-answer" placeholder="The correct written answer">${esc(q.answer_text||"")}</textarea></div>
       </div>
-      <div class="field"><label>Passage (optional — e.g. English reading)</label><textarea id="q-passage" placeholder="Leave empty if none">${esc(q.passage||"")}</textarea></div>
+      <div class="field"><label>Passage (optional — e.g. English reading)</label><textarea id="q-passage" placeholder="Leave empty if none">${esc(imageMeta(q)?"":(q.passage||""))}</textarea></div>
       <div class="field"><label>Question</label><textarea id="q-stem" placeholder="The question text">${esc(q.stem||"")}</textarea></div>
       <div class="field"><label>Explanation (optional)</label><textarea id="q-exp" placeholder="Why the answer is correct">${esc(q.explanation||"")}</textarea></div>
       <div id="q-msg" class="msg hidden"></div>
@@ -622,19 +646,19 @@
     m.querySelector("#q-sub").onchange=(e)=>{ m.querySelector("#q-st").innerHTML = `<option value="">— sub-topic —</option>`+subtopicsOf(e.target.value).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join(""); };
     m.querySelectorAll("#q-type button").forEach(b=>b.onclick=()=>{ cur.type=b.dataset.v; m.querySelectorAll("#q-type button").forEach(x=>x.classList.toggle("on",x===b)); m.querySelector("#mcq-block").classList.toggle("hidden",cur.type==="written"); m.querySelector("#written-block").classList.toggle("hidden",cur.type!=="written"); });
     m.querySelectorAll("#q-mode button").forEach(b=>b.onclick=()=>{ cur.mode=b.dataset.v; m.querySelectorAll("#q-mode button").forEach(x=>x.classList.toggle("on",x===b)); });
-    m._cur=cur;
+    m._cur=cur; m._imagePassage=imageMeta(q)?q.passage:null;
   }
   window.closeModal=()=>{ const r=$("modal-root"); r.innerHTML=""; };
   async function saveQ(id){
     const m=el(".modal"); const cur=m._cur;
     const stem=m.querySelector("#q-stem").value.trim();
-    if(!stem){ qmsg("Please enter the question text."); return; }
+    if(!stem && !m._imagePassage){ qmsg("Please enter the question text."); return; }
     const payload = {
       subject_id: m.querySelector("#q-sub").value||null,
       subtopic_id: m.querySelector("#q-st").value||null,
       grade: m.querySelector("#q-grade").value||null,
       type: cur.type, answer_mode: cur.type==="written"?"single":cur.mode,
-      passage: m.querySelector("#q-passage").value.trim()||null,
+      passage: m._imagePassage || (m.querySelector("#q-passage").value.trim()||null),
       stem, explanation: m.querySelector("#q-exp").value.trim()||null,
       answer_text: cur.type==="written" ? (m.querySelector("#q-answer").value.trim()||null) : null
     };
@@ -839,15 +863,28 @@
   }
 
   /* ---------- IMAGE IMPORT (auto-crop) ---------- */
-  let imgPages=[], imgCands=[], curPage=0, linesByPage={}, iiDragging=false, imgPdf=null, iiCleanInk=false;
+  let imgPages=[], imgCands=[], curPage=0, linesByPage={}, iiDragging=false, imgPdf=null, iiCleanInk=false, iiRemoveHandwriting=false, iiLabelPad=24, iiRedrawLabels=true, iiLabelSet="thai";
+  const EF_IMG_META="__EXAMFORGE_IMAGE_META__";
   function openImageImport(){
     imgPages=[]; imgCands=[];
     const subsOpt=state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
     const m=document.createElement("div"); m.className="modal";
     m.innerHTML=`<div class="sheet" style="max-height:88vh;overflow:auto">
       <button class="close" onclick="closeModal()">×</button>
-      <h3>Image import</h3>
-      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Load a PDF or photo. I'll draft cut lines between the questions. Drag a line to move it, tap the page to add one, ✕ to remove. Then review the crops and set the correct letters.</p>
+      <h3>Clean exam import</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">Turn a photographed or scanned exam into clean practice questions. The original page is kept so you can open it later for each question.</p>
+      <div class="ii-panel">
+        <div class="ii-title">Cleanup controls</div>
+        <div class="ii-help">These run locally in your browser. The original file is never overwritten.</div>
+        <div class="ii-controls">
+          <label class="ii-control"><input type="checkbox" id="ii-handwriting" onchange="setImageCleanup('handwriting',this.checked)"> Remove black handwriting &amp; marks <span class="chip">review recommended</span></label>
+          <label class="ii-control"><input type="checkbox" id="ii-colourink" onchange="setImageCleanup('colour',this.checked)"> Remove blue/red pen marks</label>
+          <label class="ii-control"><input type="checkbox" id="ii-redraw" checked onchange="setImageCleanup('redraw',this.checked)"> Redraw clean ก. ข. ค. ง. labels</label>
+          <div class="ii-range"><label for="ii-labelpad" style="margin:0">Label cleanup area</label><output id="ii-labelpad-out">24 px</output><input id="ii-labelpad" type="range" min="0" max="70" value="24" oninput="setImageCleanup('pad',this.value)"></div>
+          <div class="row"><select id="ii-labelset" onchange="setImageCleanup('set',this.value)"><option value="thai">Thai labels · ก ข ค ง</option><option value="latin">Latin labels · A B C D</option></select><button class="btn sm" onclick="exportCleanPdf()" style="flex:none">Export cleaned PDF</button></div>
+        </div>
+      </div>
+      <div class="ii-step"><div class="num">1</div><div><b>Load your file</b><span>PDF pages and photos are supported. Move the cut lines if the automatic draft is off.</span></div></div>
       <div class="row"><div class="field"><label>Subject</label><select id="ii-sub">${subsOpt}</select></div><div class="field"><label>Grade</label><select id="ii-grade"><option value="">—</option><option ${profile.grade==='P6'?'selected':''}>P6</option><option ${profile.grade==='M2'?'selected':''}>M2</option><option>Other</option></select></div></div>
       <div class="field"><label>PDF or image</label><input id="ii-file" type="file" accept="image/*,application/pdf" onchange="handleImgFile(event)"></div>
       <div id="ii-stat" style="font-size:12.5px;color:var(--muted);margin-bottom:8px"></div>
@@ -862,12 +899,16 @@
           <button class="btn sm" onclick="reproposePage()">Re-draft</button>
         </div>
         <div id="ii-editor" style="position:relative;width:100%;user-select:none;touch-action:none;border:1px solid var(--line);border-radius:8px;overflow:hidden"></div>
-        <button class="btn primary" style="width:100%;margin-top:10px" onclick="buildFromLines()">Review &amp; set answers →</button>
+        <button class="btn primary" style="width:100%;margin-top:10px" onclick="buildFromLines()">Review cleanup &amp; answers →</button>
       </div>
       <div id="ii-review" class="hidden">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="ii-clean" onchange="toggleCleanInk(this.checked)" style="width:auto"> Erase colored pen marks (blue/red ink only)</label>
+        <div class="ii-panel">
+          <div class="ii-title">2 · Review the cleaned questions</div>
+          <div class="ii-help">The app guesses the marked answer from extra ink around a choice. Tap a label to correct it. Use the brush for any handwriting the automatic cleanup misses.</div>
+          <div class="ii-actions"><button class="btn sm" onclick="detectAllImageAnswers()">Detect marked answers</button><button class="btn sm" onclick="exportCleanPdf()">Export cleaned PDF</button></div>
+        </div>
         <div id="ii-cands"></div>
-        <div class="row" style="margin-top:8px"><button class="btn" onclick="backToEditor()">← Back to lines</button><button class="btn primary" id="ii-go" onclick="runImageImport()">Import selected</button></div>
+        <div class="row" style="margin-top:8px"><button class="btn" onclick="backToEditor()">← Back to lines</button><button class="btn primary" id="ii-go" onclick="runImageImport()">Import cleaned questions</button></div>
       </div>
     </div>`;
     $("modal-root").appendChild(m);
@@ -881,10 +922,10 @@
         const pdf=await pdfjs.getDocument({data:buf}).promise; imgPdf=pdf; const mx=Math.min(pdf.numPages,15);
         for(let p=1;p<=mx;p++){ setS(`Rendering page ${p}/${mx}…`); const page=await pdf.getPage(p); const vp=page.getViewport({scale:1.5}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
           let starts=[]; try{ const tc=await page.getTextContent(); const pw=vp.width; tc.items.forEach(it=>{ if(!it.str||!it.str.trim()) return; const t=pdfjs.Util.transform(vp.transform, it.transform); const x=t[4], y=t[5]; const h=Math.hypot(t[1],t[3])||16; if(/^\s*(?:\d{1,3}|[๐-๙]{1,3})[\.\)]/.test(it.str) && x < pw*0.20){ starts.push(y-h); } }); }catch(_){}
-          imgPages.push({canvas:c, starts}); }
+          imgPages.push({canvas:c, original:c, starts}); }
       } else if(file.type.startsWith("image/")){
         setS("Loading image…"); const url=URL.createObjectURL(file); const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error("bad image")); im.src=url; });
-        const c=document.createElement("canvas"); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext("2d").drawImage(img,0,0); imgPages.push({canvas:c, starts:[]}); URL.revokeObjectURL(url);
+        const c=document.createElement("canvas"); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext("2d").drawImage(img,0,0); imgPages.push({canvas:c, original:c, starts:[]}); URL.revokeObjectURL(url);
       } else { setS("Please choose an image or PDF."); return; }
       initEditor();
     }catch(err){ setS("Couldn't read that file: "+(err.message||err)); }
@@ -993,9 +1034,10 @@
   function buildFromLines(){
     imgCands=[];
     imgPages.forEach((pg,pi)=>{ const H=pg.canvas.height; const ls=(linesByPage[pi]||[]).slice().sort((a,b)=>a-b); const b=[0,...ls,H];
-      for(let i=0;i<b.length-1;i++){ const y0=b[i], y1=b[i+1]; if(y1-y0 > H*0.02) imgCands.push({page:pi,y0,y1,ans:null}); } });
+      for(let i=0;i<b.length-1;i++){ const y0=b[i], y1=b[i+1]; if(y1-y0 > H*0.02) imgCands.push({page:pi,y0,y1,ansIdx:null,confidence:0,eraseRects:[]}); } });
+    imgCands.forEach(cd=>{ const d=detectMarkedAnswer(cropRaw(cd.page,cd.y0,cd.y1),cd.count||4); cd.ansIdx=d.idx; cd.confidence=d.confidence; });
     $("ii-editwrap").classList.add("hidden"); $("ii-review").classList.remove("hidden");
-    const s=$("ii-stat"); if(s) s.textContent=`${imgCands.length} crop(s) ready. Tap the correct letter on each (✕ to drop, Merge up to join), then Import.`;
+    const s=$("ii-stat"); if(s) s.textContent=`${imgCands.length} crop(s) ready. Review cleanup, check the detected marked answer, then import.`;
     renderImgCands();
   }
   function backToEditor(){ $("ii-review").classList.add("hidden"); $("ii-editwrap").classList.remove("hidden"); showEditorPage(); }
@@ -1012,46 +1054,158 @@
     return Math.min(y1, y0+Math.round(last/scale)+10);
   }
   function cleanInk(c){ const ctx=c.getContext("2d"); const im=ctx.getImageData(0,0,c.width,c.height); const d=im.data; for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; const mx=Math.max(r,g,b),mn=Math.min(r,g,b); if(mx-mn>45){ d[i]=d[i+1]=d[i+2]=255; } } ctx.putImageData(im,0,0); return c; }
-  function cropCanvas(pi,y0,y1){ const src=imgPages[pi].canvas; const h=Math.max(1,y1-y0); const c=document.createElement("canvas"); c.width=src.width; c.height=h; c.getContext("2d").drawImage(src,0,y0,src.width,h,0,0,src.width,h); if(iiCleanInk) cleanInk(c); return c; }
+  function cloneCanvas(src){ const c=document.createElement("canvas"); c.width=src.width; c.height=src.height; c.getContext("2d").drawImage(src,0,0); return c; }
+  function labelSet(){ return iiLabelSet==="latin"?["A","B","C","D","E","F"]:["ก","ข","ค","ง","จ","ฉ"]; }
+  function labelAnchors(c){
+    const W=c.width,H=c.height, out=[], data=c.getContext("2d").getImageData(0,0,W,H).data;
+    const cols=[Math.round(W*.18),Math.round(W*.56)];
+    const isDark=(x,y)=>{ const i=(y*W+x)*4; return (0.3*data[i]+0.59*data[i+1]+0.11*data[i+2])<155; };
+    cols.forEach((cx,ci)=>{
+      const x0=Math.max(0,cx-Math.round(W*.015)), x1=Math.min(W,cx+Math.round(W*.015));
+      const rows=[]; let start=null,last=null;
+      for(let y=0;y<H;y+=2){ let dark=0,total=0; for(let x=x0;x<x1;x+=2){ total++; if(isDark(x,y)) dark++; }
+        const ink=total&&dark/total>.035;
+        if(ink){ if(start===null)start=y; last=y; } else if(start!==null){ if(last-start>=2) rows.push([start,last]); start=null; }
+      }
+      if(start!==null&&last-start>=2) rows.push([start,last]);
+      rows.forEach(r=>out.push({x:cx,y:Math.round((r[0]+r[1])/2),h:Math.max(12,r[1]-r[0]+8),col:ci}));
+    });
+    return out.sort((a,b)=>a.y-b.y||a.x-b.x);
+  }
+  function applyLabelCleanup(c, redraw, choiceCount){
+    const ctx=c.getContext("2d"), W=c.width, labels=labelSet();
+    const anchors=labelAnchors(c); const byCol=[[],[]]; anchors.forEach(a=>byCol[a.col].push(a));
+    byCol.forEach((arr,ci)=>{
+      const picked=choiceCount&&arr.length>choiceCount ? arr.slice(-choiceCount) : arr;
+      picked.forEach((a,i)=>{
+      const extra=iiRemoveHandwriting?Math.round(iiLabelPad*.45):0;
+      const half=Math.round(W*.014)+iiLabelPad+extra;
+      const top=Math.max(0,a.y-a.h*.78), bottom=Math.min(c.height,a.y+a.h*.78);
+      ctx.fillStyle="#fff"; ctx.fillRect(Math.max(0,a.x-half),top,Math.min(W,a.x+half)-(Math.max(0,a.x-half)),bottom-top);
+      if(redraw){ ctx.fillStyle="#1a1730"; ctx.font=`${Math.max(12,Math.round(a.h*.9))}px Arial,sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText((labels[i%labels.length])+".",a.x,a.y); }
+      });
+    });
+    return anchors;
+  }
+  function cropRaw(pi,y0,y1){ const src=imgPages[pi].original||imgPages[pi].canvas; const h=Math.max(1,y1-y0); const c=document.createElement("canvas"); c.width=src.width; c.height=h; c.getContext("2d").drawImage(src,0,y0,src.width,h,0,0,src.width,h); return c; }
+  function applyManualErasures(c,cd){ if(!cd||!cd.eraseRects||!cd.eraseRects.length)return; const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; cd.eraseRects.forEach(r=>{ ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.fill(); }); }
+  function cleanedCandidateCanvas(cd){
+    const c=cropRaw(cd.page,cd.y0,cd.y1);
+    if(iiCleanInk) cleanInk(c);
+    applyLabelCleanup(c,iiRedrawLabels,cd.count||4);
+    applyManualErasures(c,cd);
+    return c;
+  }
+  function cropCanvas(pi,y0,y1){ return cleanedCandidateCanvas({page:pi,y0,y1,eraseRects:[]}); }
+  function labelScore(c,a){
+    const ctx=c.getContext("2d"), W=c.width, H=c.height, x0=Math.max(0,Math.round(a.x-W*.055)), x1=Math.min(W,Math.round(a.x+W*.055)), y0=Math.max(0,Math.round(a.y-a.h*1.5)), y1=Math.min(H,Math.round(a.y+a.h*1.5));
+    const d=ctx.getImageData(x0,y0,Math.max(1,x1-x0),Math.max(1,y1-y0)).data; let n=0;
+    for(let i=0;i<d.length;i+=4) if(.3*d[i]+.59*d[i+1]+.11*d[i+2]<150)n++;
+    return n;
+  }
+  function detectMarkedAnswer(c,count){
+    const anchors=labelAnchors(c); const left=anchors.filter(a=>a.col===0); if(left.length<count) return {idx:null,confidence:0};
+    const rows=left.slice(-count), scores=rows.map(a=>labelScore(c,a)); const sorted=scores.slice().sort((a,b)=>b-a); const best=scores.indexOf(sorted[0]); const base=sorted[1]||1; const confidence=Math.max(0,Math.min(0.99,(sorted[0]-base)/Math.max(1,sorted[0])));
+    return {idx:confidence>=.12?best:null,confidence, scores};
+  }
+  function setImageCleanup(kind,value){
+    if(kind==="handwriting") iiRemoveHandwriting=!!value;
+    else if(kind==="colour") iiCleanInk=!!value;
+    else if(kind==="redraw") iiRedrawLabels=!!value;
+    else if(kind==="pad") iiLabelPad=Math.max(0,Math.min(70,+value||0));
+    else if(kind==="set") iiLabelSet=value||"thai";
+    const o=$("ii-labelpad-out"); if(o)o.textContent=iiLabelPad+" px";
+    if($("ii-cands")) renderImgCands();
+  }
   function renderImgCands(){
     const box=$("ii-cands"); if(!box) return;
     if(!imgCands.length){ box.innerHTML=`<div class="empty">No crops — go back and add some cut lines.</div>`; return; }
-    const letters=["ก","ข","ค","ง","จ","ฉ"];
-    box.innerHTML=imgCands.map((cd,i)=>{ const count=cd.count||4; const c=cropCanvas(cd.page,cd.y0,cd.y1); const tw=Math.min(c.width,300), th=Math.max(1,Math.round(c.height*(tw/c.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(c,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.7);
-      const counts=[2,3,4,5,6].map(n=>`<button class="btn sm" style="${count===n?'background:var(--ink);color:var(--card)':''}" onclick="imgSetCount(${i},${n})">${n}</button>`).join("");
-      const ans=letters.slice(0,count).map(L=>`<button class="btn sm" style="${cd.ans===L?'background:var(--accent);color:#fff':''}" onclick="imgSetAns(${i},'${L}')">${L}</button>`).join("");
-      return `<div class="tile"><img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--line)">
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:var(--muted)">Choices:</span>${counts}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-size:12px;color:var(--muted)">Correct:</span>${ans}</div>
-        <div style="display:flex;gap:6px;margin-top:8px"><button class="btn sm" onclick="imgMergeUp(${i})" ${i===0?'disabled':''}>⤒ Merge up</button><button class="btn sm danger" onclick="imgDiscard(${i})">✕ Drop</button></div></div>`;
+    const letters=labelSet();
+    box.innerHTML=imgCands.map((cd,i)=>{ const count=cd.count||4; const c=cleanedCandidateCanvas(cd); const tw=Math.min(c.width,420), th=Math.max(1,Math.round(c.height*(tw/c.width))); const tc=document.createElement("canvas"); tc.width=tw; tc.height=th; tc.getContext("2d").drawImage(c,0,0,tw,th); const url=tc.toDataURL("image/jpeg",0.82);
+      const counts=[2,3,4,5,6].map(n=>`<button class="btn sm ${count===n?'on':''}" onclick="imgSetCount(${i},${n})">${n}</button>`).join("");
+      const ans=letters.slice(0,count).map((L,idx)=>`<button class="btn sm ${cd.ansIdx===idx?'on':''}" onclick="imgSetAns(${i},${idx})">${L}</button>`).join("");
+      const detected=cd.ansIdx==null?"No confident mark detected":`Detected ${letters[cd.ansIdx]||"?"}${cd.confidence?` · ${Math.round(cd.confidence*100)}% confidence`:""}`;
+      return `<div class="ii-candidate"><img src="${url}" alt="Cleaned question ${i+1}"><div class="ii-meta"><span>Page ${cd.page+1} · crop ${i+1}</span><span>${detected}</span></div><div class="ii-answer"><span style="font-size:12px;color:var(--muted)">Answer from mark:</span>${ans}</div><div class="ii-answer"><span style="font-size:12px;color:var(--muted)">Choices:</span>${counts}</div><div class="ii-actions"><button class="btn sm" onclick="imgBrush(${i})">Erase with brush</button><button class="btn sm" onclick="openOriginalSource(${cd.page})">Original page</button><button class="btn sm" onclick="imgDetectOne(${i})">Detect again</button><button class="btn sm danger" onclick="imgDiscard(${i})">Drop</button></div></div>`;
     }).join("");
   }
-  function imgSetAns(i,L){ imgCands[i].ans=L; renderImgCands(); }
-  function imgSetCount(i,n){ imgCands[i].count=n; const order=["ก","ข","ค","ง","จ","ฉ"]; if(imgCands[i].ans && order.indexOf(imgCands[i].ans)>=n) imgCands[i].ans=null; renderImgCands(); }
+  function imgSetAns(i,idx){ imgCands[i].ansIdx=idx; renderImgCands(); }
+  function imgSetCount(i,n){ imgCands[i].count=n; if(imgCands[i].ansIdx!=null&&imgCands[i].ansIdx>=n)imgCands[i].ansIdx=null; renderImgCands(); }
+  function imgDetectOne(i){ const cd=imgCands[i], d=detectMarkedAnswer(cropRaw(cd.page,cd.y0,cd.y1),cd.count||4); cd.ansIdx=d.idx; cd.confidence=d.confidence; renderImgCands(); }
+  function detectAllImageAnswers(){ imgCands.forEach((cd)=>{ const d=detectMarkedAnswer(cropRaw(cd.page,cd.y0,cd.y1),cd.count||4); cd.ansIdx=d.idx; cd.confidence=d.confidence; }); renderImgCands(); }
   function imgMergeUp(i){ if(i<=0) return; const a=imgCands[i-1], b=imgCands[i]; if(a.page===b.page){ a.y0=Math.min(a.y0,b.y0); a.y1=Math.max(a.y1,b.y1); } imgCands.splice(i,1); renderImgCands(); }
   function imgDiscard(i){ imgCands.splice(i,1); renderImgCands(); }
-  function toggleCleanInk(v){ iiCleanInk=v; renderImgCands(); }
+  function imgBrush(i){
+    const cd=imgCands[i], base=cleanedCandidateCanvas(cd), scale=Math.min(1,(Math.min(window.innerWidth,520)-50)/base.width), dw=Math.max(1,Math.round(base.width*scale)), dh=Math.max(1,Math.round(base.height*scale));
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="sheet"><button class="close" onclick="closeModal()">×</button><h3>Erase handwriting</h3><p class="ii-note">Paint over handwriting or answer marks only. Printed text is not automatically reconstructed if a mark covered it.</p><canvas id="ii-brush" class="ii-brush" width="${dw}" height="${dh}"></canvas><div class="ii-range" style="margin-top:10px"><label for="ii-brush-size" style="margin:0">Brush size</label><output id="ii-brush-out">24 px</output><input id="ii-brush-size" type="range" min="8" max="80" value="24"></div><div class="row" style="margin-top:10px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();renderImgCands()">Done</button></div></div>`;
+    $("modal-root").appendChild(m);
+    const cv=$("ii-brush"), ctx=cv.getContext("2d"), brush=$("ii-brush-size"), out=$("ii-brush-out"); ctx.drawImage(base,0,0,dw,dh);
+    let down=false;
+    const pos=e=>{ const r=cv.getBoundingClientRect(); return {x:Math.max(0,Math.min(dw,(e.clientX-r.left)*(dw/r.width))),y:Math.max(0,Math.min(dh,(e.clientY-r.top)*(dh/r.height)))}; };
+    const paint=e=>{ if(!down)return; const p=pos(e), r=+brush.value*scale; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fill(); cd.eraseRects=cd.eraseRects||[]; cd.eraseRects.push({x:p.x/scale,y:p.y/scale,r:+brush.value}); e.preventDefault(); };
+    cv.addEventListener("pointerdown",e=>{down=true;cv.setPointerCapture(e.pointerId);paint(e);}); cv.addEventListener("pointermove",paint); cv.addEventListener("pointerup",()=>{down=false}); cv.addEventListener("pointercancel",()=>{down=false});
+    brush.oninput=()=>{out.textContent=brush.value+" px";};
+  }
+  function openOriginalSource(pi){
+    const pg=imgPages[pi]; if(!pg)return;
+    const src=pg.original||pg.canvas, url=src.toDataURL("image/jpeg",.85), m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="sheet"><button class="close" onclick="closeModal()">×</button><h3>Original page ${pi+1}</h3><p class="ii-note">This is the untouched page used for the imported question.</p><img class="ii-original-img" src="${url}" alt="Original exam page ${pi+1}"><button class="btn primary" style="width:100%;margin-top:10px" onclick="closeModal()">Done</button></div>`;
+    $("modal-root").appendChild(m);
+  }
+  function imageMeta(q){
+    const p=(q&&q.passage)||""; if(!p.startsWith(EF_IMG_META))return null;
+    try{return JSON.parse(p.slice(EF_IMG_META.length));}catch(_){return null;}
+  }
+  function imageMetaPassage(meta){ return EF_IMG_META+JSON.stringify(meta||{}); }
+  function openOriginalPageForQuiz(){
+    const q=quiz&&quiz.items[quiz.idx]&&quiz.items[quiz.idx].q, meta=imageMeta(q); if(!meta||!meta.original_url)return;
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="sheet"><button class="close" onclick="closeModal()">×</button><h3>Original page ${esc(meta.page||"")}</h3><p class="ii-note">The untouched page for this question.</p><img class="ii-original-img" src="${esc(meta.original_url)}" alt="Original exam page"><button class="btn primary" style="width:100%;margin-top:10px" onclick="closeModal()">Done</button></div>`;
+    $("modal-root").appendChild(m);
+  }
+  let _jspdf=null;
+  function ensureJsPdf(){ return new Promise((res,rej)=>{ if(_jspdf)return res(_jspdf); const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"; s.onload=()=>{ const J=window.jspdf&&window.jspdf.jsPDF; if(!J){rej(new Error("PDF exporter missing"));return;} _jspdf=J;res(J); }; s.onerror=()=>rej(new Error("Could not load PDF exporter")); document.body.appendChild(s); }); }
+  async function exportCleanPdf(){
+    if(!imgPages.length){ alert("Load an image or PDF first."); return; }
+    if(!imgCands.length){ alert("Review the question crops first, then export the cleaned PDF."); return; }
+    try{
+      const J=await ensureJsPdf(), first=imgPages[0].original||imgPages[0].canvas, ratio=first.width/first.height, doc=new J({orientation:ratio>1?"landscape":"portrait",unit:"pt",format:"a4"});
+      for(let i=0;i<imgPages.length;i++){
+        const src=cloneCanvas(imgPages[i].original||imgPages[i].canvas), pageCands=imgCands.filter(cd=>cd.page===i);
+        if(pageCands.length){ const pctx=src.getContext("2d"); pageCands.forEach(cd=>pctx.drawImage(cleanedCandidateCanvas(cd),0,cd.y0)); }
+        else if(iiCleanInk) cleanInk(src);
+        const url=src.toDataURL("image/jpeg",.9); const pw=doc.internal.pageSize.getWidth(), ph=doc.internal.pageSize.getHeight(), sc=Math.min(pw/src.width,ph/src.height), w=src.width*sc,h=src.height*sc; if(i)doc.addPage(); doc.addImage(url,"JPEG",(pw-w)/2,(ph-h)/2,w,h,"page"+i,"FAST");
+      }
+      doc.save("examforge-cleaned-"+new Date().toISOString().slice(0,10)+".pdf");
+    }catch(e){ alert("PDF export failed: "+(e.message||e)); }
+  }
   function canvasToBlob(c){ return new Promise(res=>c.toBlob(res,"image/jpeg",0.85)); }
   async function runImageImport(){
-    const sid=$("ii-sub").value||state.subjects[0]?.id||null; const grade=$("ii-grade").value||null;
-    const ready=imgCands.filter(c=>c.ans); const stat=$("ii-stat");
-    if(!ready.length){ if(stat) stat.textContent="Tap the correct letter on at least one exercise first."; return; }
-    $("ii-go").disabled=true; let added=0;
-    const labels=["ก","ข","ค","ง","จ","ฉ"];
-    for(let k=0;k<ready.length;k++){ const cd=ready[k]; if(stat) stat.textContent=`Uploading ${k+1}/${ready.length}…`;
+    const sid=$("ii-sub").value||state.subjects[0]?.id||null, grade=$("ii-grade").value||null;
+    const ready=imgCands.filter(c=>c.ansIdx!=null); const stat=$("ii-stat");
+    if(!ready.length){ if(stat) stat.textContent="Choose or confirm the marked answer on at least one question first."; return; }
+    $("ii-go").disabled=true; let added=0; const labels=["ก","ข","ค","ง","จ","ฉ"], pageUrls={};
+    for(let k=0;k<ready.length;k++){
+      const cd=ready[k]; if(stat) stat.textContent=`Saving ${k+1}/${ready.length}…`;
       try{
-        const blob=await canvasToBlob(cropCanvas(cd.page,cd.y0,cd.y1)); if(!blob) continue;
-        const path=`${me.id}/${Date.now()}_${k}.jpg`;
-        const up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
+        if(!pageUrls[cd.page]){
+          const originalBlob=await canvasToBlob(imgPages[cd.page].original||imgPages[cd.page].canvas), originalPath=`${me.id}/original_${Date.now()}_${cd.page}.jpg`;
+          const originalUp=await client.storage.from("qimages").upload(originalPath,originalBlob,{contentType:"image/jpeg",upsert:true});
+          if(!originalUp.error) pageUrls[cd.page]=client.storage.from("qimages").getPublicUrl(originalPath).data.publicUrl;
+        }
+        const blob=await canvasToBlob(cleanedCandidateCanvas(cd)); if(!blob) continue;
+        const path=`${me.id}/${Date.now()}_${k}.jpg`, up=await client.storage.from("qimages").upload(path,blob,{contentType:"image/jpeg",upsert:true}); if(up.error) throw up.error;
         const url=client.storage.from("qimages").getPublicUrl(path).data.publicUrl;
-        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade, type:"mcq", answer_mode:"single", stem:"", image_url:url, created_by:me.id, owner_id:state.bankOwner }).select("id").single();
-        if(error||!nq) throw (error||new Error("insert"));
-        const cnt=Math.max(2, Math.min(6, cd.count||4));
-        await client.from("choices").insert(labels.slice(0,cnt).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:L===cd.ans,position:idx})));
+        const meta={source:"clean-exam-import",page:cd.page+1,original_url:pageUrls[cd.page]||null,crop:{y0:cd.y0,y1:cd.y1},answer_index:cd.ansIdx,confidence:cd.confidence||0,choice_count:cd.count||4,label_set:iiLabelSet,label_pad:iiLabelPad,remove_handwriting:iiRemoveHandwriting};
+        const {data:nq,error}=await client.from("questions").insert({ subject_id:sid, subtopic_id:null, grade, type:"mcq", answer_mode:"single", passage:imageMetaPassage(meta), stem:"", image_url:url, created_by:me.id, owner_id:state.bankOwner }).select("id").single();
+        if(error||!nq) throw (error||new Error("Question insert failed"));
+        const cnt=Math.max(2,Math.min(6,cd.count||4));
+        await client.from("choices").insert(labels.slice(0,cnt).map((L,idx)=>({question_id:nq.id,label:L,content:"",is_correct:idx===cd.ansIdx,position:idx})));
         added++;
-      }catch(e){}
+      }catch(e){ console.warn("Image import skipped",e); }
     }
-    if(stat) stat.textContent=`Imported ${added} image question(s).`; $("ii-go").disabled=false; loadQ();
+    if(stat) stat.textContent=`Imported ${added} cleaned image question(s). Original pages are attached per question.`;
+    $("ii-go").disabled=false; loadQ();
   }
 
   /* ---------- SUBJECTS ---------- */
@@ -1454,7 +1608,7 @@
       for(const q of dump.questions){
         const ins={ subject_id:subMap[q.subject_id]||state.subjects[0]?.id||null, subtopic_id:stMap[q.subtopic_id]||null,
           grade:q.grade||null, type:q.type||"mcq", answer_mode:q.answer_mode||"single", passage:q.passage||null,
-          stem:q.stem||"", answer_text:q.answer_text||null, explanation:q.explanation||null, created_by:me.id, owner_id:state.bankOwner };
+          stem:q.stem||"", image_url:q.image_url||null, answer_text:q.answer_text||null, explanation:q.explanation||null, created_by:me.id, owner_id:state.bankOwner };
         const {data:nq,error}=await client.from("questions").insert(ins).select("id").single();
         if(error||!nq) continue;
         const ch=(dump.choices||[]).filter(c=>c.question_id===q.id);
@@ -1559,10 +1713,10 @@
   function updateTimer(){ const t=$("qz-timer"); if(t&&quiz){ const m=Math.floor(quiz.timeLeft/60), s=quiz.timeLeft%60; t.textContent=`${m}:${String(s).padStart(2,'0')}`; } }
 
   function renderQ(){
-    const v=$("view"); const it=quiz.items[quiz.idx], q=it.q, a=quiz.answers[q.id]||{};
+    const v=$("view"); const it=quiz.items[quiz.idx], q=it.q, a=quiz.answers[q.id]||{}, qmeta=imageMeta(q);
     let body="";
-    if(q.passage) body+=`<div class="tile" style="font-size:13.5px;white-space:pre-wrap;background:rgba(124,77,255,.05)">${esc(q.passage)}</div>`;
-    if(q.image_url) body+=`<img src="${q.image_url}" style="max-width:100%;border-radius:10px;margin-bottom:10px" alt="">`;
+    if(q.passage && !qmeta) body+=`<div class="tile" style="font-size:13.5px;white-space:pre-wrap;background:rgba(124,77,255,.05)">${esc(q.passage)}</div>`;
+    if(q.image_url){ body+=`<img src="${esc(q.image_url)}" style="max-width:100%;border-radius:10px;margin-bottom:10px" alt="Cleaned exam question">`; if(qmeta&&qmeta.original_url) body+=`<button class="btn sm" style="margin:-3px 0 9px" onclick="openOriginalPageForQuiz()">View original page ${esc(qmeta.page||"")}</button>`; }
     body+=`<div style="font-weight:600;font-size:16px;margin:6px 0 14px">${esc(q.stem)}</div>`;
     if(q.type==="written"){
       const revealed = a.submitted || quiz.mode==="study";
@@ -1881,6 +2035,7 @@
   window.jump=jump; window.toggleFlag=toggleFlag; window.togglePause=togglePause; window.exitQuiz=exitQuiz;
   window.submitQuiz=submitQuiz; window.openNotes=openNotes; window.saveNotes=saveNotes;
   window.goNav=goNav; window.goSubject=goSubject; window.goSubjectAction=goSubjectAction;
+  window.setImageCleanup=setImageCleanup; window.detectAllImageAnswers=detectAllImageAnswers; window.imgDetectOne=imgDetectOne; window.imgSetAns=imgSetAns; window.imgSetCount=imgSetCount; window.imgMergeUp=imgMergeUp; window.imgDiscard=imgDiscard; window.imgBrush=imgBrush; window.openOriginalSource=openOriginalSource; window.exportCleanPdf=exportCleanPdf; window.openOriginalPageForQuiz=openOriginalPageForQuiz;
   window.clearStatsSubject=clearStatsSubject; window.toggleHomeSubject=toggleHomeSubject;
 
   /* ---------- start ---------- */
