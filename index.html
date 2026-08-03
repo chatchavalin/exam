@@ -1165,7 +1165,7 @@
     });
     const ranked=Object.entries(byMode).map(([mode,arr])=>{ const vals=[...new Set(arr.map(x=>x.t))]; let count=0; for(let n=1;n<=6;n++){ const expected=mode==="thai"?["ก","ข","ค","ง","จ","ฉ"][n-1]:mode==="latin"?String.fromCharCode(65+n-1):String(n); if(vals.includes(expected))count=n; else if(n>=3)break; } return {mode,count,arr}; }).sort((a,b)=>b.count-a.count);
     const best=ranked[0]; if(best&&best.count>=3)return {mode:best.mode,count:Math.min(6,best.count)};
-    const visual=labelAnchors(canvas).filter(a=>a.col===0).length; return {mode:iiLabelSet,count:visual>=5?5:visual>=4?4:visual>=3?3:4};
+    const visual=pickLabelAnchors(labelAnchors(canvas).filter(a=>a.col===0)).length; return {mode:iiLabelSet,count:visual>=5?5:visual>=4?4:visual>=3?3:4};
   }
   async function smartOcrPage(pi,worker){
     let c=imgPages[pi].canvas, ratio=1;
@@ -1356,6 +1356,9 @@
         for(let y=by0;y<=by1;y++){ for(let x=gx0;x<=gx1;x++){ if(isDark(x,y)){ if(y<gy0)gy0=y; if(y>gy1)gy1=y; break; } } }
         const gh=Math.max(4,gy1-gy0+1);
         if(gh<6||gh>bh+Math.max(4,Math.round(bh*.6)))return;
+        // reject vertical line segments (table borders): a label glyph must be
+        // wider than ~30% of its height
+        if(gw<Math.max(3,Math.round(gh*.3)))return;
         out.push({x:Math.round((gx0+gx1)/2),x0:gx0,x1:gx1,y:Math.round((gy0+gy1)/2),y0:gy0,y1:gy1,h:gh,col:ci});
       });
     });
@@ -1370,10 +1373,13 @@
       if(!g){ g={x:a.x,items:[]}; groups.push(g); }
       g.items.push(a);
     });
-    // Prefer the largest aligned group; tie -> bottom-most (options end a question).
+    // Options end a question: prefer the LOWEST aligned group (largest mean y);
+    // tie-break by group size. Fall back to all groups if none has 2+ members.
     groups.forEach(g=>{ g.meanY=g.items.reduce((s,a)=>s+a.y,0)/g.items.length; });
-    groups.sort((a,b)=> b.items.length-a.items.length || b.meanY-a.meanY);
-    let items=groups[0]?groups[0].items:[];
+    const eligible=groups.filter(g=>g.items.length>=2);
+    const pool=eligible.length?eligible:groups;
+    pool.sort((a,b)=> b.meanY-a.meanY || b.items.length-a.items.length);
+    let items=pool[0]?pool[0].items:[];
     items=items.slice().sort((a,b)=>a.y-b.y);
     return count&&items.length>count?items.slice(-count):items;
   }
