@@ -1147,6 +1147,66 @@
     if(starts.length<2){ const segs=analyzePage(canvas,.02); starts=segs.map(s=>s[0]).filter((y,i)=>i===0||y-segs[i-1][1]>H*.025); }
     return starts.filter((y,i)=>i===0||y-starts[i-1]>H*.02).slice(0,120);
   }
+  // Layout-only question separation: every question starts with a number-dot
+  // ("1." "2." "3."). A number-dot is a NARROW left-margin glyph followed by an
+  // ISOLATED dot, sitting on its own text line — a question boundary is exactly
+  // the top of such a line, and the previous question ends there too.
+  function smartQuestionDots(canvas){
+    const W=canvas.width,H=canvas.height;
+    const data=canvas.getContext("2d").getImageData(0,0,W,H).data;
+    const isDark=(x,y)=>{ const i=(y*W+x)*4; return (.3*data[i]+.59*data[i+1]+.11*data[i+2])<155; };
+    const colDark=(x,y0,y1)=>{ for(let y=y0;y<=y1;y+=2){ if(isDark(x,y))return true; } return false; };
+    // Full-resolution text-line bands (thin handwritten strokes survive at
+    // full res — smartInkLines downsamples to 240px and loses them).
+    const bands=[]; let st=null,last=null;
+    for(let y=0;y<H;y+=2){ let dark=0; for(let x=0;x<W;x+=3){ if(isDark(x,y))dark++; }
+      if(dark*3/W>.008){ if(st===null)st=y; last=y; } else if(st!==null){ if(last-st>=3)bands.push([st,last]); st=null; } }
+    if(st!==null&&last-st>=3)bands.push([st,last]);
+    if(!bands.length)return [];
+    // Merge bands split by a tiny gap (a handwritten glyph often breaks into
+    // two bands); small fixed threshold — never bridge real question gaps.
+    const mergeGap=Math.max(6,Math.round(H*.008));
+    const merged=[]; bands.forEach(b=>{ const lastb=merged[merged.length-1]; if(lastb&&b[0]-lastb[1]<=mergeGap)lastb[1]=b[1]; else merged.push([b[0],b[1]]); });
+    const labels=[];
+    for(const ln of merged){
+      const y0=ln[0],y1=ln[1];
+      // leftmost dark pixel within the left margin
+      let x0=-1;
+      for(let x=0;x<W*.22;x++){ if(colDark(x,y0,y1)){ x0=x; break; } }
+      if(x0<0)continue;
+      // glyph right edge: stop at 2 consecutive blank columns
+      let x1=x0,blank=0;
+      for(let x=x0+1;x<Math.min(W,x0+Math.max(12,W*.2));x++){
+        if(colDark(x,y0,y1)){ blank=0; x1=x; }
+        else if(++blank>=2)break;
+      }
+      const gw=x1-x0+1;
+      if(gw<3||gw>W*.18)continue;               // sliver or divider/text line
+      // isolated dot: a SHORT vertical ink run to the right of the glyph,
+      // much shorter than the glyph height (a dot is 2-5px; strokes run tall).
+      const hg=y1-y0+1, dotMax=Math.max(5,Math.round(hg*.5));
+      let dot=false;
+      for(let x=x1+2;x<Math.min(W,x1+W*.08);x++){
+        if(!colDark(x,y0,y1))continue;
+        let run=0,run0=0;
+        for(let y=y0;y<=y1;y++){ if(isDark(x,y)){ if(!run)run0=y; run++; } }
+        if(run>=2&&run<=dotMax){ dot=true; break; }
+      }
+      // A question number-dot ALWAYS has a dot; solid blobs (circle arcs,
+      // divider ends) and plain left-margin text must not count as labels.
+      if(!dot)continue;
+      labels.push({y0,y1,x0,x1,gw,dot});
+    }
+    if(!labels.length)return [];
+    // A label starts a new question when there is no other label close above it
+    // (same option row-set belongs to one question).
+    const gaps=[]; for(let i=1;i<labels.length;i++)gaps.push(labels[i].y0-labels[i-1].y1);
+    const pos=gaps.filter(g=>g>=0).sort((a,b)=>a-b), medGap=pos.length?pos[Math.floor(pos.length/2)]:H*.03;
+    const maxGap=Math.max(H*.018,medGap*2.2);
+    const starts=[];
+    labels.forEach((lb,i)=>{ const prevGap=i? lb.y0-labels[i-1].y1 : Infinity; if(i===0||prevGap>maxGap)starts.push(Math.max(0,lb.y0-6)); });
+    return starts.filter((y,i)=>i===0||y-starts[i-1]>H*.02).slice(0,120);
+  }
   function wordText(w){ return String(w&&w.text||"").trim().replace(/[\u00a0]/g,""); }
   function wordBox(w){ const b=w&&w.bbox||{}; return {x:+b.x0||0,y:+b.y0||0,w:(+b.x1||0)-(+b.x0||0),h:(+b.y1||0)-(+b.y0||0)}; }
   function smartQuestionStartsFromWords(words,H){
@@ -1183,6 +1243,7 @@
       if(worker){ words=await smartOcrPage(pi,worker); if(words.length)usedOcr=true; }
       iiSmartWords[pi]=words;
       let starts=smartQuestionStartsFromWords(words,pg.canvas.height); if(starts.length<2&&pg.starts&&pg.starts.length)starts=normalizeStartYs(pg.starts,pg.canvas.height);
+      if(starts.length<2)starts=smartQuestionDots(pg.canvas);
       if(starts.length<2)starts=smartLayoutStarts(pg.canvas);
       if(starts.length<1)starts=[0];
       linesByPage[pi]=starts.slice(1).map(y=>Math.max(4,Math.round(y-6)));
